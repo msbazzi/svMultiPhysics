@@ -613,6 +613,54 @@ void load_fiber_direction_vtu(const std::string& file_name, const std::string& d
   }
 }
 
+
+void load_vwN_vtu(const std::string& file_name, const std::string& data_name, 
+    const int nsd, mshType& mesh)
+{
+  #ifdef debug_load_vwN_vtu
+  std::cout << "[load_vwN_vtu] " << std::endl;
+  std::cout << "[load_vwN_vtu] ===== vtk_xml_parser::load_vwN_vtu ===== " << std::endl;
+  #endif
+  using namespace vtk_xml_parser;
+
+  if (FILE *file = fopen(file_name.c_str(), "r")) {
+      fclose(file);
+  } else {
+    throw std::runtime_error("The fiber direction VTK file '" + file_name + "' can't be read.");
+  }
+
+  auto reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
+  reader->SetFileName(file_name.c_str());
+  reader->Update();
+  vtkSmartPointer<vtkUnstructuredGrid> vtk_ugrid = reader->GetOutput();
+
+  vtkIdType num_nodes = vtk_ugrid->GetNumberOfPoints();
+  if (num_nodes == 0) {
+    throw std::runtime_error("Failed reading the VTK file '" + file_name + "'.");
+  }
+
+  vtkIdType num_elems = vtk_ugrid->GetNumberOfCells();
+  if (mesh.gnEl != num_elems) {
+    throw std::runtime_error("The number of elements (" + std::to_string(num_elems) + 
+        ") in the fiber direction VTK file '" + file_name + "' is not equal to the number of elements (" 
+        + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
+  }
+
+  // Get the 3-component fiber orientation data.
+  auto vwN_data = vtkDoubleArray::SafeDownCast(vtk_ugrid->GetCellData()->GetArray(data_name.c_str()));
+  if (vwN_data == nullptr) { 
+    throw std::runtime_error("No '" + data_name + "' data found in vwN VTK file '" + file_name + "'");
+  }
+
+  for (int e = 0; e < mesh.gnEl; e++) {
+    auto vwn = vwN_data->GetTuple(e);
+    for (int i = 0; i < mesh.nvw; i++) {
+      mesh.vwN(i, e) = vwn[i];
+    }
+   
+  }
+}
+
 /// @brief Store a surface mesh read from a VTK .vtp file into a Face object.
 //
 void load_vtp(const std::string& file_name, faceType& face)

@@ -64,7 +64,12 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
   int eNoN = lM.eNoN;
   int nFn  = lM.nFn;
+  int nvw  = lM.nvw; 
+  int nvwa = 1;
+
+  if (nvw != 0) nvwa = nvw/lM.nG;
   if (nFn == 0) nFn = 1;
+  if (nvw == 0) nvw = 1;
 
   bool  vmsStab = false;
   if (lM.nFs == 1) {
@@ -101,6 +106,7 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
   std::array<fsType,2> fs_2;
   fs::get_thood_fs(com_mod, fs_2, lM, vmsStab, 2);
+
 
   // Loop over all elements of mesh
   //

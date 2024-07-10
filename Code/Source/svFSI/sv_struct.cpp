@@ -214,7 +214,7 @@ void b_struct_3d(const ComMod& com_mod, const int eNoN, const double w, const Ve
 
 /// @brief Replicates the Fortan 'CONSTRUCT_dSOLID' subroutine.
 //
-void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Array<double>& Ag, const Array<double>& Yg, const Array<double>& Dg)
+void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const Array<double>& Ag, const Array<double>& Yg, const Array<double>& Dg, mshType& lM)
 {
   using namespace consts;
 
@@ -223,6 +223,14 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
   #endif
+
+  if (!lM.hasMatPts) {
+    lM.hasMatPts = true;
+    lM.matPts.resize(lM.nEl);
+    for (auto &row : lM.matPts) {
+      row.resize(lM.nG, nullptr);
+    }
+  }
 
   auto& cem = cep_mod.cem;
   const int nsd  = com_mod.nsd;
@@ -264,6 +272,14 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
   for (int e = 0; e < lM.nEl; e++) {
     // Update domain and proceed if domain phys and eqn phys match
     cDmn = all_fun::domain(com_mod, lM, cEq, e);
+
+
+    for (int g = 0; g < lM.nG; g++) {
+      if(!lM.matPts[e][g]) {
+        auto& stM = eq.dmn[cDmn].stM;
+        lM.matPts[e][g] = new matPoint(stM, e, g);
+      }
+    }
     auto cPhys = eq.dmn[cDmn].phys;
     if (cPhys != EquationType::phys_struct) {
       continue; 
@@ -331,6 +347,8 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
       N = lM.N.col(g);
       pSl = 0.0;
 
+      matPoint *matPt = lM.matPts[e][g];
+      
       if (nsd == 3) {
         struct_3d_carray(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
         //struct_3d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
@@ -618,7 +636,7 @@ void struct_2d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
 void struct_3d_carray(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, const double w, 
     const Vector<double>& N, const Array<double>& Nx, const Array<double>& al, const Array<double>& yl, 
     const Array<double>& dl, const Array<double>& bfl, const Array<double>& fN, const Array<double>& pS0l, 
-    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK) 
+    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK, matPoint *matPt) 
 {
   using namespace consts;
   using namespace mat_fun;
@@ -758,7 +776,7 @@ void struct_3d_carray(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const in
   double S[3][3]; 
   double Dm[6][6]; 
 
-  mat_models_carray::get_pk2cc<3>(com_mod, cep_mod, dmn, F, nFn, fN, ya_g, S, Dm);
+  mat_models_carray::get_pk2cc<3>(com_mod, cep_mod, dmn, F, nFn, fN, ya_g, S, Dm, matPt);
 
   // Elastic + Viscous stresses
   for (int i = 0; i < 3; i++) {

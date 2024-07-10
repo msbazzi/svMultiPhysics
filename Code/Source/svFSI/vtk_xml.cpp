@@ -652,6 +652,32 @@ void read_vtu_pdata(const std::string& fName, const std::string& kwrd, const int
   }
 }
 
+// read mm parameters from a vtu file
+
+void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, mshType& mesh)
+{
+  if (FILE *file = fopen(fName.c_str(), "r")) {
+      fclose(file);
+  } else {
+    throw std::runtime_error("The VTK VTU pressure data file '" + fName + "' can't be read.");
+  }
+
+  // Read the vtu file.
+  //
+  auto vtk_data = VtkData::create_reader(fName);
+  int num_elems = vtk_data->num_elems();
+  int num_points = vtk_data->num_points();
+
+  if (num_elem != mesh.gnEl) {
+    throw std::runtime_error("The number of elements (" + std::to_string(num_elem) +
+        ") in the file '" + fName + "' is not equal to the number of elements ("
+        + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
+  }
+
+  vtk_xml_parser::load_vwN_vtu(fName, kwrd, simulation->com_mod.nsd, mesh);
+ 
+}
+
 //-----------
 // read_vtus
 //-----------

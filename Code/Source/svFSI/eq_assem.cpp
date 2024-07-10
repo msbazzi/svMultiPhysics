@@ -405,6 +405,91 @@ void fsi_ls_upd(ComMod& com_mod, const bcType& lBc, const faceType& lFa)
 ///
 /// Ag(tDof,tnNo), Yg(tDof,tnNo), Dg(tDof,tnNo)
 //
+// overload...
+
+// changing the meshType to not remove the const requeriment 
+void global_eq_assem(ComMod& com_mod, CepMod& cep_mod, const Array<double>& Ag, const Array<double>& Yg, const Array<double>& Dg, mshType& lM)
+{
+  #define n_debug_global_eq_assem
+  #ifdef debug_global_eq_assem
+  DebugMsg dmsg(__func__, com_mod.cm.idcm());
+  dmsg.banner();
+  dmsg << "lM.name: " << lM.name;
+  com_mod.timer.set_time();
+  #endif
+
+  using namespace consts;
+
+  int cEq = com_mod.cEq;
+  auto& eq = com_mod.eq[cEq];
+  #ifdef debug_global_eq_assem
+  dmsg << "cEq: " << cEq;
+  dmsg << "eq.sym: " << eq.sym;
+  dmsg << "eq.phys: " << eq.phys;
+  #endif
+
+  switch (eq.phys) {
+
+    case EquationType::phys_fluid:
+      fluid::construct_fluid(com_mod, lM, Ag, Yg);
+    break;
+
+    case EquationType::phys_heatF:
+      heatf::construct_heatf(com_mod, lM, Ag, Yg);
+    break;
+
+    case EquationType::phys_heatS:
+      heats::construct_heats(com_mod, lM, Ag, Yg);
+    break;
+
+    case EquationType::phys_lElas:
+      l_elas::construct_l_elas(com_mod, lM, Ag, Dg);
+    break;
+
+    case EquationType::phys_struct:
+      // struct_ns::construct_dsolid(com_mod, cep_mod, lM, Ag, Yg, Dg);
+      struct_ns::construct_dsolid(com_mod, cep_mod, Ag, Yg, Dg, lM);
+    break;
+
+    case EquationType::phys_ustruct:
+      ustruct::construct_usolid(com_mod, cep_mod, lM, Ag, Yg, Dg);
+    break;
+
+    case EquationType::phys_CMM:
+      cmm::construct_cmm(com_mod, lM, Ag, Yg, Dg);
+    break;
+
+    case EquationType::phys_shell:
+      shells::construct_shell(com_mod, lM, Ag, Yg, Dg);
+    break;
+
+    case EquationType::phys_FSI:
+      fsi::construct_fsi(com_mod, cep_mod, lM, Ag, Yg, Dg);
+    break;
+
+    case EquationType::phys_mesh:
+      mesh::construct_mesh(com_mod, cep_mod, lM, Ag, Dg);
+    break;
+
+    case EquationType::phys_CEP:
+      cep::construct_cep(com_mod, cep_mod, lM, Ag, Yg, Dg);
+    break;
+
+    case EquationType::phys_stokes:
+      stokes::construct_stokes(com_mod, lM, Ag, Yg);
+    break;
+
+    default:
+      throw std::runtime_error("[global_eq_assem] Undefined physics selection for assembly");
+  } 
+
+  #ifdef debug_global_eq_assem
+  double elapsed_time = com_mod.timer.get_elapsed_time();
+  dmsg << "elapsed_time: " << elapsed_time;
+  #endif
+}
+
+// this has const mshType
 void global_eq_assem(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Array<double>& Ag, const Array<double>& Yg, const Array<double>& Dg)
 {
   #define n_debug_global_eq_assem

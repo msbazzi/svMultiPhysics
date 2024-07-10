@@ -43,7 +43,7 @@
 #include "VtkData.h"
 
 #include "fsils_api.hpp"
-#include "fils_struct.hpp"
+//#include "fils_struct.hpp"
 
 #include <fstream>
 #include <functional>

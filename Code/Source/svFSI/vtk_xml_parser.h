@@ -48,6 +48,8 @@ class VtkFileExtentions {
 
 void load_fiber_direction_vtu(const std::string& file_name, const std::string& data_name, const int idx, 
     const int nsd, mshType& mesh);
+    
+void load_vwN_vtu(const std::string& file_name, const std::string& data_name, const int nsd, mshType& mesh);
 
 void load_vtp(const std::string& file_name, faceType& face);
 
