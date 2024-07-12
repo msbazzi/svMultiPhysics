@@ -228,7 +228,7 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
     pl = Kp*(2.0*J/dV -1.0);
   } else {
     if (!utils::is_zero(Kp)) {
-     get_svol_p(com_mod, cep_mod, stM, J, p, pl);
+     mat_models::(com_mod, cep_mod, stM, J, p, pl);
     }
   }
   
@@ -243,6 +243,8 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
   double Q[N][N];
   double Fps[N][N];
   double Sb[N][N];
+  double Si[N][N];
+  
   mat_fun_carray::mat_id<N>(Sb);
   mat_fun_carray::ten_ids<N>(Ids);
 
@@ -266,10 +268,12 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
       // compute isochoric component of E
       E = 0.5*((J2d/dV2d)*C-Idm);
       
-      Sb = ten_mddot(CCb, E, nsd);
+      mat_fun_carray::ten_ddot(CCb, E, Sb);
 
       // Compute r1
-      double r1 = (J2d/dV2d)*mat_ddot(C, Sb, nsd)/nd;
+      double C_Sb_matddot; 
+      mat_fun_carray::mat_ddot(C, Sb, C_Sb_matddot);
+      double r1 = (J2d/dV2d)*C_Sb_matddot/nd;
       S = (J2d/dV2d)*Sb - r1*Ci;
 
 
@@ -312,7 +316,15 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
       mat_fun_carray::ten_dyad_prod<N>(Ci, Ci, Ci_Ci_prod);
       mat_fun_carray::ten_symm_prod<N>(Ci, Ci, Ci_Ci_symm_prod);
 
-      CC = CC + 2.0*(r1 - (p+g1)*J)*Ci_Ci_symm_prod + ((pl+g1)*J -2.0*r1/nd)*Ci_Ci_prod;
+      for (int i = 0; i < nsd; i++) {
+        for (int j = 0; j < nsd; j++) {
+          for (int k = 0; k < nsd; k++) {
+            for (int l = 0; l < nsd; l++) {
+              CC[i][j][k][l] += 2.0*(r1 - (p+g1)*J) * Ci_Ci_symm_prod[i][j][k][l] +  ((pl+g1)*J - 2.0*r1/nd) * Ci_Ci_prod[i][j][k][l];
+            }
+          }
+        }
+      }
     }
 
     // MM (Mixed Mixture model) - four fiber family
@@ -371,20 +383,135 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
         double C_Sb_ddot;
 
         mat_fun_carray::mat_ddot(C, Sb, C_Sb_ddot);
-        double r1 = J2d*mat_ddot(C,Sb,nsd)/nd;
+        mat_fun_carray::ten_dyad_prod<N>(Ci, Ci, Ci_Ci_prod);
+        mat_fun_carray::ten_dyad_prod<N>(Ci, Si, Ci_Si_prod);
+        mat_fun_carray::ten_symm_prod<N>(Ci, Ci, Ci_Ci_symm_prod);
 
-        Si = J2d*Sb - r1*Ci;
+        double r1 = J2d*C_Sb_ddot/nd;
 
-        CCi = -2/nd*(ten_dyad_prod(Ci,Ci, nsd)+ten_dyad_prod(Si, Ci,nsd));
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
+            for (int k = 0; k < nsd; k++) {
+              for (int l = 0; l < nsd; l++) {
 
-        Si += p*J*Ci;
+                Si[i][j][k][l] = J2d*Sb[i][j][k][l] - r1*Ci[i][j][k][l];
 
-        CCi += 2*(r1-p*J)*ten_symm_prod(Ci,Ci,nsd) + (pl*J-2*r1/nd)*ten_dyad_prod(Ci,Ci, nsd);
+                Ci[i][j][k][l] = -2/nd*(Ci_Ci_prod[i][j][k][l]+Ci_Si_prod[i][j][k][l]);
 
-        S += vFa*Si;
+                Si[i][j][k][l] += p*J*Ci[i][j][k][l];
 
-        CC += vFa*CCi; 
-           
+                Ci[i][j][k][l] +=  2.0*(r1 - p*J) * Ci_Ci_symm_prod[i][j][k][l] + ((pl+g1)*J - 2.0*r1/nd) * Ci_Ci_prod[i][j][k][l];
+                
+                S[i][j][k][l]  += vFa*Si[i][j][k][l];
+
+                CC[i][j][k][l] +=vFa*CCi[i][j][k][l];
+              }
+            }
+          }
+        }
+
+      for(int i = 0; i<=nAni ; i++) {
+
+            // volR_alpha
+            double vFa = vwN(0+(nIso+i-1)*nVars);
+
+            // prestretch
+            double gan = vwN(1+(nIso+i-1)*nVars);
+
+            //First material property
+            double vaff = vwN(2+(nIso+i-1)*nVars);
+
+            //second material property 
+            double vbff = vwN(3+(nIso+i-1)*nVars);
+
+            Array<double> fdir(3,1);
+
+            //Fiber direction
+            for (int j=0;j<=3;j++){
+              fdir(i,0) = vwN(4+j+(nIso +i-1)*nVars);
+            }
+            
+
+            vaff = vaff/2.0;
+
+            double Inv4 = J2d*utils::norm(fdir.col(0), mat_mul(C,fdir.col(0)));
+
+            double Eff = Inv4*gan*gan -1.0;
+
+            double Hff[N][N];
+            mat_fun_carray::mat_dyad_prod<N>(fl.col(0), fl.col(0), Hff);
+
+            double g1 = vaff*(1.0 +2.0*vbff*Eff*Eff)*exp(vbff*Eff*Eff)*gan*gan*gan*gan;
+
+            g1=4.0*J4d*g1;
+
+            CCb = g1*ten_dyad_prod(Hff, Hff, nsd);
+
+            double r1 = J2d*mat_ddot(C, Sb, nsd)/nd;
+
+            Si = J2d*Sb - r1*Ci;
+
+            PP = ten_ids(nsd) - (1.0/nd)*ten_dyad_prod(Ci,C, nsd);
+
+            CCi = ten_ddot(CCb, PP, nsd);
+            CCi = ten_transpose(CCi, nsd);
+            CCi += -2.0*(r1-p*J)*ten_symm_prod(Ci,Ci, nsd) + ten_dyad_prod(Si, Ci, nsd);
+
+            S += vFa*Si;
+            CC += vFa*CCi;
+        
+        }
+
+        for(int i = 1; i<=nAct ; i++) {
+          double vFa   = vwN(0+(nIso + nAct + i - 1)*nVars);
+          double fTact = vwN(1+(nIso + nAct + i - 1)*nVars);
+          double lamm  = vwN(2+(nIso + nAct + i - 1)*nVars);
+          double lam0  = vwN(3+(nIso + nAct + i - 1)*nVars);
+
+          //Fiber direction
+          Array<double> fdir(4,1);
+          for(int j=0; j<=3; j++){
+            fdir(j,1) = vwN(j+(nIso+nAct +i-1)*nVars);
+          }
+
+          double Inv4 = J2d*utils::norm(fdir.col(0), mat_mul(C, fdir.col(0)));
+          
+          double Hff[N][N];
+          double fdir_fdir_dyad[N][N];
+          mat_fun_carray::mat_dyad_prod<N>(fl.col(0), fl.col(0), Hff);
+          mat_fun_carray::mat_dyad_prod(fdir.col(0), fdir.col(0), fdir_fdir_dyad);
+
+          // CMM fiber reinforcement/active stress
+
+          for (int i = 0; i < nsd; i++) {
+            for (int j = 0; j < nsd; j++) {
+              for (int k = 0; k < nsd; k++) {
+                for (int l = 0; l < nsd; l++) {
+                  Sb[i][j][k][l] = fTact*(pow(Inv4,-0.5))*- r1*Ci[i][j][k][l];
+                }
+              }
+           }
+          }
+
+
+          Sb = fTact*(pow(Inv4,-0.5))*(1-pow((lamm-pow(Inv4, -0.5))/(lamm-lam0),2));
+
+          double r1 = J2d*mat_ddot(C,Sb,nsd);
+          Si = J2d*Sb - r1*Ci;
+
+          PP = ten_ids(nsd) - (1.0/nd)*(ten_dyad_prod(Ci,C, nsd));
+
+          CCi = ten_ddot(CCb, PP, nsd);
+          CCi = ten_transpose(CCi, nsd);
+          CCi = ten_ddot (PP, CCi, nsd);
+
+          CCi += -(2.0/nd)*(r1-p*J)*ten_symm_prod(Ci, Ci, nsd) + (pl*J -2.0*r1/nd)*ten_dyad_prod(Ci,Ci,nsd);
+
+          S = S+vFa*Si;
+          CC +=vFa*CCi;
+          
+        }
+          
     }
 
 
