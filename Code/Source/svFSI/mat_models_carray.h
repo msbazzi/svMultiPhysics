@@ -395,20 +395,21 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
 
         for (int i = 0; i < nsd; i++) {
           for (int j = 0; j < nsd; j++) {
+            Si[i][j][k][l] = J2d*Sb[i][j] - r1*Ci[i][j];
+            Si[i][j] += p*J*Ci[i][j];
+            S[i][j]  += vFa*Si[i][j];
+          }
+        }
+
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
             for (int k = 0; k < nsd; k++) {
               for (int l = 0; l < nsd; l++) {
 
-                Si[i][j][k][l] = J2d*Sb[i][j][k][l] - r1*Ci[i][j][k][l];
-
-                Ci[i][j][k][l] = -2/nd*(Ci_Ci_prod[i][j][k][l]+Ci_Si_prod[i][j][k][l]);
-
-                Si[i][j][k][l] += p*J*Ci[i][j][k][l];
-
-                Ci[i][j][k][l] +=  2.0*(r1 - p*J) * Ci_Ci_symm_prod[i][j][k][l] + ((pl+g1)*J - 2.0*r1/nd) * Ci_Ci_prod[i][j][k][l];
-                
-                S[i][j][k][l]  += vFa*Si[i][j][k][l];
-
+                CCi[i][j][k][l] = -2/nd*(Ci_Ci_prod[i][j][k][l]+Ci_Si_prod[i][j][k][l]);
+                CCi[i][j][k][l] +=  2.0*(r1 - p*J) * Ci_Ci_symm_prod[i][j][k][l] + ((pl+g1)*J - 2.0*r1/nd) * Ci_Ci_prod[i][j][k][l];
                 CC[i][j][k][l] +=vFa*CCi[i][j][k][l];
+
               }
             }
           }
@@ -461,15 +462,18 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
               for (int j = 0; j < nsd; j++) {
                    
                 Si[i][j]  = J2d*Sb[i][j]-r1*Ci[i][j];
+                S[i][j]  += vFa*Si[i][j];
+
               }
             }
-    
-            mat_fun_carray::ten_ids<N>(Ids);
-            mat_fun_carray::ten_ids<N>(Ids);
+
             double Ci_C_dyad[N][N][N][N];
             double CCi_t[N][N][N][N];
             double Si_Ci_dyad[N][N][N][N];
             double Ci_Ci_symm_prod[N][N][N][N];
+
+            mat_fun_carray::ten_ids<N>(Ids);
+            mat_fun_carray::ten_ids<N>(Ids);
             mat_fun_carray::ten_dyad_prod(Ci,C,Ci_C_dyad);
             mat_fun_carray::ten_ddot(CCb,PP,CCi);
             mat_fun_carray::ten_transpose(CCi, CCi_t);
@@ -481,13 +485,8 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
               for (int j = 0; j < nsd; j++) {
                 for (int k = 0; k < nsd; k++) {
                   for (int l = 0; l < nsd; l++) {
-
                     PP[i][j][k][l] = Ids[i][j][k][l] - 1.0/nd*Ci_C_dyad[i][j][k][l];
-
                     CCi[i][j][k][l] += 2.0/nd*(r1 - p*J) * Ci_Ci_symm_prod[i][j][k][l] +  Si_Ci_dyad[i][j][k][l]
-                    
-                    S[i][j]  += vFa*Si[i][j];
-
                     CC[i][j][k][l] +=vFa*CCi[i][j][k][l];
                   }
                 }
@@ -532,13 +531,15 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
           for (int i = 0; i < nsd; i++) {
             for (int j = 0; j < nsd; j++) {
               Si[i][j] = J2d*Sb[i][j]-r1*Ci[i][j];
+              S[i][j] += vFa*Si[i][j];
            }
           
-          mat_fun_carray::ten_ids<N>(Ids);
+
           double Ci_C_dyad[N][N][N][N];
           double CCi_t[N][N][N][N];
           double Ci_Ci_dyad[N][N][N][N];
           double Ci_Ci_symm_prod[N][N][N][N];
+          mat_fun_carray::ten_ids<N>(Ids);
           mat_fun_carray::ten_dyad_prod(Ci,C,Ci_C_dyad);
           mat_fun_carray::ten_ddot(CCb,PP,CCi);
           mat_fun_carray::ten_transpose(CCi, CCi_t);
@@ -552,9 +553,6 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
                 for (int l = 0; l < nsd; l++) {
         
                   Ci[i][j][k][l] +=  2.0/nd*(r1 - p*J) * Ci_Ci_symm_prod[i][j][k][l] + (pl*J - 2.0*r1/nd) * Ci_Ci_dyad[i][j][k][l];
-                  
-                  S[i][j][k][l]  += vFa*Si[i][j][k][l];
-
                   CC[i][j][k][l] +=vFa*CCi[i][j][k][l];
                 }
               }
