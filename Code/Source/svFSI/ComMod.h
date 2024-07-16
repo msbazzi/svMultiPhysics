@@ -886,6 +886,9 @@ class mshType
     /// @brief Number of fiber directions
     int nFn = 0;
 
+    /// @brief Number of wall variables
+    int nvw = 0;
+
     /// @brief Mesh scale factor
     double scF = 0.0;
 
@@ -958,6 +961,10 @@ class mshType
     /// @brief Fiber orientations stored at the element level - used for
     /// electrophysiology and solid mechanics
     Array<double> fN;
+
+    /// @brief wall variable stored at the node level - used for g&r
+    /// solid mechanics
+    Array<double> vwN;
 
     /// @brief Parent shape functions gradient
     /// double Nx(:,:,:)
