@@ -37,7 +37,6 @@
 #include "Array.h"
 #include "Vector.h"
 
-
 #include "mpi.h"
 #include "consts.h"
 

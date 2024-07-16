@@ -36,6 +36,10 @@
 #include "nn.h"
 #include "utils.h"
 
+#ifdef WITH_TRILINOS
+#include "trilinos_linear_solver.h"
+#endif
+
 namespace heats {
 
 void b_heats(ComMod& com_mod, const int eNoN, const double w, const Vector<double>& N, const double h, Array<double>& lR)
@@ -129,9 +133,19 @@ void construct_heats(ComMod& com_mod, const mshType& lM, const Array<double>& Ag
       }
     }
 
-    eq.linear_algebra->assemble(com_mod, eNoN, ptr, lK, lR);
+    // Assembly
+#ifdef WITH_TRILINOS
+   if (eq.assmTLS) {
+     trilinos_doassem_(const_cast<int&>(eNoN), const_cast<int*>(ptr.data()), lK.data(), lR.data());
+   } else {
+#endif
+     lhsa_ns::do_assem(com_mod, eNoN, ptr, lK, lR);
+#ifdef WITH_TRILINOS
+    }
+#endif
   }
 }
+
 
 void heats_2d(ComMod& com_mod, const int eNoN, const double w, const Vector<double>& N, const Array<double>& Nx, 
     const Array<double>& al, const Array<double>& yl, Array<double>& lR, Array3<double>& lK)

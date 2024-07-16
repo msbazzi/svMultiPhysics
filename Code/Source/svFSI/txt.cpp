@@ -39,7 +39,6 @@
 #include "set_bc.h"
 #include "utils.h"
 #include <math.h>
-#include "svZeroD_subroutines.h"
 
 namespace txt_ns {
 
@@ -150,9 +149,6 @@ void txt(Simulation* simulation, const bool flag)
         if (cplBC.useGenBC) {
           set_bc::genBC_Integ_X(com_mod, cm_mod, "L");
 
-        } else if (cplBC.useSvZeroD){
-          svZeroD::calc_svZeroD(com_mod, cm_mod, 'L');
-          
         } else {
 
           for (auto& bc : com_mod.eq[0].bc) {

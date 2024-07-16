@@ -445,16 +445,7 @@ void read_vtp(const std::string& file_name, faceType& face)
     throw std::runtime_error("The VTK face file '" + file_name + "' can't be read.");
   }
 
-  // Check if the face mesh needs to be read from a VTP or VTU file.
-  //
-  auto file_ext = file_name.substr(file_name.find_last_of(".") + 1);
-
-  if (file_ext == "vtp") {
-    vtk_xml_parser::load_vtp(file_name, face);
-
-  } else if (file_ext == "vtu") {
-    vtk_xml_parser::load_vtu(file_name, face);
-  }
+  vtk_xml_parser::load_vtp(file_name, face);
 
   if (face.gN.size() == 0) {
     std::cout << "[WARNING] No node IDs found in the '" << file_name << "' face file.";
@@ -706,32 +697,6 @@ void read_vtu_pdata(const std::string& fName, const std::string& kwrd, const int
   } else {
     vtk_data->copy_point_data(kwrd, mesh.x);
   }
-}
-
-// read mm parameters from a vtu file
-
-void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, mshType& mesh)
-{
-  if (FILE *file = fopen(fName.c_str(), "r")) {
-      fclose(file);
-  } else {
-    throw std::runtime_error("The VTK VTU pressure data file '" + fName + "' can't be read.");
-  }
-
-  // Read the vtu file.
-  //
-  auto vtk_data = VtkData::create_reader(fName);
-  int num_elems = vtk_data->num_elems();
-  int num_points = vtk_data->num_points();
-
-  if (num_elem != mesh.gnEl) {
-    throw std::runtime_error("The number of elements (" + std::to_string(num_elem) +
-        ") in the file '" + fName + "' is not equal to the number of elements ("
-        + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
-  }
-
-  vtk_xml_parser::load_vwN_vtu(fName, kwrd, simulation->com_mod.nsd, mesh);
- 
 }
 
 //-----------

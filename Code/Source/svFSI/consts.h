@@ -34,9 +34,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
-#include <set>
 #include <type_traits>
-#include <variant>
 
 // The enums here replicate the PARAMETERs defined
 // in CONSTS.f.
@@ -209,8 +207,6 @@ enum class ConstitutiveModelType
   stIso_HO = 608,
   stIso_HO_ma = 610,
   stIso_LS = 611,
-  stIso_aniso = 612,
-  stIso_mix = 613,
   stVol_NA = 650,
   stVol_Quad = 651, 
   stVol_ST91 = 652, 
@@ -426,18 +422,13 @@ enum class PreconditionerType
   PREC_TRILINOS_IC = 706,
   PREC_TRILINOS_ICT = 707, 
   PREC_TRILINOS_ML = 708,
-  PREC_RCS = 709,
-  PREC_PETSC_JACOBI = 710,
-  PREC_PETSC_RCS = 711
+  PREC_RCS = 709
 };
 
-extern const std::set<PreconditionerType> fsils_preconditioners;
-extern const std::set<PreconditionerType> petsc_preconditioners;
-extern const std::set<PreconditionerType> trilinos_preconditioners;
-extern const std::map<PreconditionerType, std::string> preconditioner_type_to_name;
-
-/// Map for preconditioner type string to PreconditionerType enum.
-extern const std::map<std::string,PreconditionerType> preconditioner_name_to_type;
+/// Map for preconditioner type string to pair (PreconditionerType enum, bool(true if Trilinos precondition)). 
+using PreconditionerMapType = std::pair<PreconditionerType,bool>;
+//extern const std::map<std::string,PreconditionerType> preconditioner_name_to_type;
+extern const std::map<std::string,PreconditionerMapType> preconditioner_name_to_type;
 
 enum class SolverType
 {
@@ -471,25 +462,11 @@ std::ostream& operator<<(typename std::enable_if<std::is_enum<T>::value, std::os
 
 //// Mechanical configurations
 enum class MechanicalConfigurationType
-{ 
+{
   reference, // reference configuration
   old_timestep, // old timestep (n) configuration
   new_timestep // new timestep (n+1) configuration
 };
-
-//-------------------
-// LinearAlgebraType
-//-------------------
-// The type of the numerical linear algebra library.
-//
-enum class LinearAlgebraType {
-  none,
-  fsils,
-  petsc,
-  trilinos
-};
-
-
 };
 
 #endif

@@ -38,7 +38,6 @@
 #include "nn.h"
 #include "set_bc.h"
 #include "utils.h"
-#include "svZeroD_subroutines.h"
 
 #include "fsils_api.hpp"
 #include "fils_struct.hpp"
@@ -165,10 +164,6 @@ void baf_ini(Simulation* simulation)
 
     if (com_mod.cplBC.useGenBC) {
       set_bc::genBC_Integ_X(com_mod, cm_mod, "I");
-    }
-
-    if (com_mod.cplBC.useSvZeroD) {
-      svZeroD::init_svZeroD(com_mod, cm_mod);
     }
 
     if (com_mod.cplBC.schm != CplBCType::cplBC_E) {

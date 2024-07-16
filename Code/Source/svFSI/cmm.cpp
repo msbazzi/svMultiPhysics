@@ -40,6 +40,10 @@
 #include "utils.h"
 #include <math.h>
 
+#ifdef WITH_TRILINOS
+#include "trilinos_linear_solver.h"
+#endif
+
 namespace cmm {
 
 void cmm_3d(ComMod& com_mod, const int eNoN, const double w, const Vector<double>& N, const Array<double>& Nx, 
@@ -317,8 +321,18 @@ void cmm_b(ComMod& com_mod, const faceType& lFa, const int e, const Array<double
     cmm_mass(com_mod, w, N, al, bfl, vwp, lR, lK);
   }
 
-  eq.linear_algebra->assemble(com_mod, 3, ptr, lK, lR);
+  // Now doing the assembly part
+
+  if (eq.assmTLS) {
+#ifdef WITH_TRILINOS
+    int n = 3;
+    trilinos_doassem_(const_cast<int&>(n), const_cast<int*>(ptr.data()), lK.data(), lR.data());
+#endif
+  } else { 
+    lhsa_ns::do_assem(com_mod, 3, ptr, lK, lR);
+  }
 }
+
 
 void bcmmi(ComMod& com_mod, const int eNoN, const int idof, const double w, const Vector<double>& N, const Array<double>& Nxi, 
     const Array<double>& xl, const Array<double>& tfl, Array<double>& lR)
@@ -431,8 +445,20 @@ void cmmi(ComMod& com_mod, const mshType& lM, const Array<double>& al, const Arr
     }
   }
 
-  eq.linear_algebra->assemble(com_mod, 3, ptr, lK, lR);
+  // Now doing the assembly part
+#ifdef WITH_TRILINOS
+  if (eq.assmTLS) {
+    int numNodesPerElement = 3;
+    trilinos_doassem_(numNodesPerElement,  const_cast<int*>(ptr.data()), lK.data(), lR.data()); 
+  } else { 
+#endif
+    lhsa_ns::do_assem(com_mod, 3, ptr, lK, lR);
+#ifdef WITH_TRILINOS
+  }
+#endif
+
 }
+
 
 void cmm_mass(ComMod& com_mod, const double w, const Vector<double>& N, const Array<double>& al, 
     const Array<double>& bfl, const Vector<double>& vwp, Array<double>& lR, Array3<double>& lK)
@@ -904,7 +930,18 @@ void construct_cmm(ComMod& com_mod, const mshType& lM, const Array<double>& Ag, 
         cmm_3d(com_mod, eNoN, w, N, Nx, al, yl, bfl, ksix, lR, lK);
       }
 
-      eq.linear_algebra->assemble(com_mod, eNoN, ptr, lK, lR);
+      // Assembly
+      //
+#ifdef WITH_TRILINOS
+      if (eq.assmTLS) {
+        trilinos_doassem_(const_cast<int&>(eNoN), ptr.data(), lK.data(), lR.data());
+      } else {
+#endif
+        lhsa_ns::do_assem(com_mod, eNoN, ptr, lK, lR);
+#ifdef WITH_TRILINOS
+      }
+#endif
+
     }
   }
 }

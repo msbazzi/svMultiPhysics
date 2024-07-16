@@ -118,30 +118,6 @@ void cc_to_voigt(const int nsd, const Tensor4<double>& CC, Array<double>& Dm)
   } 
 }
 
-void voigt_to_cc(const int nsd, Tensor4<double>& CC, Array<double>& Dm)
-{
-  int VgtMap[3][3] = {
-        {1, 4, 6},
-        {4, 2, 5},
-        {6, 5, 3}};
-  if (nsd == 3) {
-    
-    for(int i = 0; i< nsd; i++){
-      for(int j=0; j< nsd ; j++){
-        for(int k=0; k< nsd; k++){
-          for(int l=0;l<nsd;l++){
-              int p = VgtMap[i][j] - 1; // Adjusting for 0-based indexing
-              int q = VgtMap[k][l] - 1; // Adjusting for 0-based indexing
-              CC(i,j,k,l) = Dm(p,q);
-          }
-        }
-      }
-    }
-
-  }
- 
-}
-
 /// @brief Compute additional fiber-reinforcement stress.
 ///
 /// Reproduces Fortran 'GETFIBSTRESS' subroutine.
@@ -167,7 +143,7 @@ void get_fib_stress(const ComMod& com_mod, const CepMod& cep_mod, const fibStrsT
 /// Reproduces the Fortran 'GETPK2CC' subroutine.
 //
 void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Array<double>& F, const int nfd,
-    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm, const int nvw, Array<double>& vwN)
+    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm)
 {
   using namespace consts;
   using namespace mat_fun;
@@ -229,235 +205,16 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
   // Contribution of dilational penalty terms to S and CC
   double p  = 0.0;
   double pl = 0.0;
-  double dV = 0.0;
-  double dV2d = 0.0;
-  
-  
-  if (stM.isoType == ConstitutiveModelType::stIso_aniso){
-    if ( com_mod.time < 1.0){
-      dV = 1.0+com_mod.time*(vwN(38)-1.0)/1.0;  
-    } else {
-      dV = vwN(38);
-    }
-    dV2d = pow(dV, -2/nd);
-    p = Kp*(J/dV -1.0);
-    pl = Kp*(2.0*J/dV -1.0);
-  } else {
-    if (!utils::is_zero(Kp)) {
-     get_svol_p(com_mod, cep_mod, stM, J, p, pl);
-    }
+
+  if (!utils::is_zero(Kp)) {
+    get_svol_p(com_mod, cep_mod, stM, J, p, pl);
   }
-  
+
   // Now, compute isochoric and total stress, elasticity tensors
   //
   Tensor4<double> CC(nsd,nsd,nsd,nsd);
-  Tensor4<double> PP(nsd,nsd,nsd,nsd);
-  Tensor4<double> CCb(nsd,nsd,nsd,nsd);
-  Tensor4<double> CCi(nsd,nsd,nsd,nsd);
-  auto Sb = mat_id(nsd); 
-  auto E = mat_id(nsd);   
-  Array<double> Fps(nsd,nsd);
-  Array<double> Q(nsd,nsd);
-  Array<double> Si(nsd,nsd);
- 
+
   switch (stM.isoType) {
-
-    //Anisotropic linear hyperlasticity
-    case ConstitutiveModelType::stIso_aniso: {
-
-      Array<double> DD(6,6);
-      for (int i = 0; i < 6; ++i) {
-        for (int j = 0; j < 6; ++j) {
-            DD(i,j) = vwN(i * 6 + j);
-        }
-      }
- 
-      double g1 = vwN(37);
-
-      // Convert voigt notation to conventional notation
-      voigt_to_cc(nsd, CCb, DD); 
- 
-      // compute isochoric component of E
-      E = 0.5*((J2d/dV2d)*C-Idm);
-      
-      Sb = ten_mddot(CCb, E, nsd);
-
-      // Compute r1
-      double r1 = (J2d/dV2d)*mat_ddot(C, Sb, nsd)/nd;
-      S = (J2d/dV2d)*Sb - r1*Ci;
-
-
-      CCb = (pow(J2d/dV2d,2)*CCb);
-
-      PP = ten_ids(nsd) - (1.0/nd)*ten_dyad_prod(Ci,C, nsd); 
-      CC = ten_ddot(CCb, PP, nsd);
-      CC = ten_transpose(CC, nsd);
-      CC = ten_ddot(PP, CC, nsd);
-      CC = CC - (2.0/nd)*(ten_dyad_prod(Ci,S, nsd)+ten_dyad_prod(S,Ci, nsd));
-
-      S += (p+g1)*J*Ci;
-
-      S(1,1) += vwN(38);
-      S(2,2) += vwN(39);
-      S(2,3) += vwN(40);
-
-      S(1,2) += vwN(41);
-      S(2,3) += vwN(42);
-      S(3,1) += vwN(43);
-
-      S(2,1) += vwN(41);
-      S(3,2) += vwN(42);
-      S(1,3) += vwN(43);
-
-      CC = CC + 2.0*(r1 - (p+g1)*J)*ten_symm_prod(Ci, Ci, nsd) + ((pl+g1)*J -2.0*r1/nd)*ten_dyad_prod(Ci, Ci, nsd);
-    }
-
-    // MM (Mixed Mixture model) - four fiber family
-        case ConstitutiveModelType::stIso_mix: {
-          //if(!useVarWall) {  //TODO check this variable and print error msg
-
-          // number of collagen constituents 
-          int nVars = 14;
-          int nIso  = 1;
-          int nAni  = 5;
-          int nAct  = 0;
-
-          for(int i = 0; i<=nIso ; i++) {
-            double vFa = vwN(0+(i-1)*nVars);
-            double p1  = vwN(1+(i-1)*nVars);
-            double p2  = vwN(2+(i-1)*nVars);
-            double p3  = vwN(3+(i-1)*nVars);
-            double g1  = vwN(4+(i-1)*nVars);
-            
-            Array<double> f1 (3,1);
-            Array<double> f2 (3,1);
-            Array<double> f3 (3,1);
-
-            for(int j=0; j<3; j++){
-              f1(j,1) = vwN(5+j+(i-1)*nVars);
-              f2(j,1) = vwN(8+j+(i-1)*nVars);
-              f3(j,1) = vwN(11+j+(i-1)*nVars);
-         
-            }
-
-            for(int j=0; j<3;j++){
-              Q(0, j) = f1(j);
-              Q(1, j) = f2(j);
-              Q(2, j) = f3(j);
-            }
-            std::cout << "Checking Q" << Q;          
-            Fps(1,1) = p1;
-            Fps(2,2) = p2;
-            Fps(3,3) = p3;
-            
-            Fps = mat_mul(transpose(Q), mat_mul(Fps,Q));
-
-            Sb = g1*mat_mul(Fps, transpose(Fps));
-
-            double r1 = J2d*mat_ddot(C,Sb,nsd)/nd;
-
-            Si = J2d*Sb - r1*Ci;
-
-            CCi = -2/nd*(ten_dyad_prod(Ci,Ci, nsd)+ten_dyad_prod(Si, Ci,nsd));
-
-            Si += p*J*Ci;
-
-            CCi += 2*(r1-p*J)*ten_symm_prod(Ci,Ci,nsd) + (pl*J-2*r1/nd)*ten_dyad_prod(Ci,Ci, nsd);
-
-            S += vFa*Si;
-
-            CC += vFa*CCi;
-          }
-
-          for(int i = 0; i<=nAni ; i++) {
-
-            // volR_alpha
-            double vFa = vwN(0+(nIso+i-1)*nVars);
-
-            // prestretch
-            double gan = vwN(1+(nIso+i-1)*nVars);
-
-            //First material property
-            double vaff = vwN(2+(nIso+i-1)*nVars);
-
-            //second material property 
-            double vbff = vwN(3+(nIso+i-1)*nVars);
-
-            Array<double> fdir(3,1);
-
-            //Fiber direction
-            for (int j=0;j<=3;j++){
-              fdir(i,0) = vwN(4+j+(nIso +i-1)*nVars);
-            }
-            
-
-            vaff = vaff/2.0;
-
-            double Inv4 = J2d*utils::norm(fdir.col(0), mat_mul(C,fdir.col(0)));
-
-            double Eff = Inv4*gan*gan -1.0;
-
-            auto Hff = mat_dyad_prod(fdir.col(0),fdir.col(0), nsd);
-
-            double g1 = vaff*(1.0 +2.0*vbff*Eff*Eff)*exp(vbff*Eff*Eff)*gan*gan*gan*gan;
-
-            g1=4.0*J4d*g1;
-
-            CCb = g1*ten_dyad_prod(Hff, Hff, nsd);
-
-            double r1 = J2d*mat_ddot(C, Sb, nsd)/nd;
-
-            Si = J2d*Sb - r1*Ci;
-
-            PP = ten_ids(nsd) - (1.0/nd)*ten_dyad_prod(Ci,C, nsd);
-
-            CCi = ten_ddot(CCb, PP, nsd);
-            CCi = ten_transpose(CCi, nsd);
-            CCi += -2.0*(r1-p*J)*ten_symm_prod(Ci,Ci, nsd) + ten_dyad_prod(Si, Ci, nsd);
-
-            S += vFa*Si;
-            CC += vFa*CCi;
-        
-        }
-
-        for(int i = 1; i<=nAct ; i++) {
-          double vFa   = vwN(0+(nIso + nAct + i - 1)*nVars);
-          double fTact = vwN(1+(nIso + nAct + i - 1)*nVars);
-          double lamm  = vwN(2+(nIso + nAct + i - 1)*nVars);
-          double lam0  = vwN(3+(nIso + nAct + i - 1)*nVars);
-
-          //Fiber direction
-          Array<double> fdir(4,1);
-          for(int j=0; j<=3; j++){
-            fdir(j,1) = vwN(j+(nIso+nAct +i-1)*nVars);
-          }
-
-          double Inv4 = J2d*utils::norm(fdir.col(0), mat_mul(C, fdir.col(0)));
-          
-          auto Hff = mat_dyad_prod(fdir.col(0),fdir.col(0), nsd);
-
-          // CMM fiber reinforcement/active stress
-
-          Sb = fTact*(pow(Inv4,-0.5))*mat_dyad_prod(fdir.col(0), fdir.col(0), nsd)*(1-pow((lamm-pow(Inv4, -0.5))/(lamm-lam0),2));
-
-          double r1 = J2d*mat_ddot(C,Sb,nsd);
-          Si = J2d*Sb - r1*Ci;
-
-          PP = ten_ids(nsd) - (1.0/nd)*(ten_dyad_prod(Ci,C, nsd));
-
-          CCi = ten_ddot(CCb, PP, nsd);
-          CCi = ten_transpose(CCi, nsd);
-          CCi = ten_ddot (PP, CCi, nsd);
-
-          CCi += -(2.0/nd)*(r1-p*J)*ten_symm_prod(Ci, Ci, nsd) + (pl*J -2.0*r1/nd)*ten_dyad_prod(Ci,Ci,nsd);
-
-          S = S+vFa*Si;
-          CC +=vFa*CCi;
-          
-        }
-
-    }
-
     case ConstitutiveModelType::stIso_lin: {
       double g1 = stM.C10;    // mu
       S = g1*Idm;
@@ -498,7 +255,7 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
         }
       }
 
-      CC = (-2.0/nd) * (ten_dyad_prod(Ci, S, nsd) + ten_dyad_prod(S, Ci, nsd));
+      CC = (-2.0/nd) * ( ten_dyad_prod(Ci, S, nsd) + ten_dyad_prod(S, Ci, nsd));
       S += p*J*Ci;
       CC += 2.0*(r1 - p*J) * ten_symm_prod(Ci, Ci, nsd)  +  (pl*J - 2.0*r1/nd) * ten_dyad_prod(Ci, Ci, nsd);
 

@@ -43,10 +43,13 @@
 #include <iomanip>
 #include <math.h>
 
+#ifdef WITH_TRILINOS
+#include "trilinos_linear_solver.h"
+#endif
+
 namespace fsi {
 
-void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Array<double>& Ag, 
-    const Array<double>& Yg, const Array<double>& Dg)
+void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Array<double>& Ag, const Array<double>& Yg, const Array<double>& Dg)
 {
   #define n_debug_construct_fsi 
   #ifdef debug_construct_fsi
@@ -61,12 +64,7 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
   int eNoN = lM.eNoN;
   int nFn  = lM.nFn;
-  int nvw  = lM.nvw; 
-  int nvwa = 1;
-
-  if (nvw != 0) nvwa = nvw/lM.nG;
   if (nFn == 0) nFn = 1;
-  if (nvw == 0) nvw = 1;
 
   bool  vmsStab = false;
   if (lM.nFs == 1) {
@@ -96,7 +94,7 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
   Array3<double> lK(dof*dof,eNoN,eNoN), lKd(dof*nsd,eNoN,eNoN);
   Array<double> xl(nsd,eNoN), al(tDof,eNoN), yl(tDof,eNoN), dl(tDof,eNoN), bfl(nsd,eNoN), 
       fN(nsd,nFn), pS0l(nsymd,eNoN), lR(dof,eNoN);
-  Vector<double> pSl(nsymd), ya_l(eNoN), vwN(nvw);
+  Vector<double> pSl(nsymd), ya_l(eNoN);
 
   std::array<fsType,2> fs_1;
   fs::get_thood_fs(com_mod, fs_1, lM, vmsStab, 1);
@@ -148,13 +146,6 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
           }
         }
       }
-
-      if (lM.vwN.size() != 0) {
-        for (int i = 0; i < nsd; i++) {
-          vwN(i) = lM.vwN(i,e);
-        }
-      }
-
 
       if (pS0.size() != 0) {
         pS0l.set_col(a, pS0.col(Ac));
@@ -216,8 +207,11 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
            throw std::runtime_error("[construct_fsi] Jacobian for element " + std::to_string(e) + " is < 0.");
         }
 
-        auto Nxx = fs_1[0].Nxx.rslice(g);
-        nn::gn_nxx(l, fs_1[0].eNoN, nsd, nsd, Nx, Nxx, xwl, Nwx, Nwxx);
+        if (!vmsStab) {
+          auto Nx = fs_1[0].Nx.rslice(g);
+          auto Nxx = fs_1[0].Nxx.rslice(g);
+          nn::gn_nxx(l, fs_1[0].eNoN, nsd, nsd, Nx, Nxx, xwl, Nwx, Nwxx);
+        }
       }
 
       double w = fs_1[0].w(g) * Jac;
@@ -232,7 +226,7 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
           case Equation_struct: {
             auto N0 = fs_1[0].N.col(g);
-            struct_ns::struct_3d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK, nvw, vwN);
+            struct_ns::struct_3d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
           } break;
           case Equation_lElas:
             throw std::runtime_error("[construct_fsi] LELAS3D not implemented");
@@ -261,7 +255,7 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
           case Equation_struct: {
             auto N0 = fs_1[0].N.col(g);
-            struct_ns::struct_2d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK, nvw, vwN);
+            struct_ns::struct_2d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
           } break;
 
           case Equation_ustruct:
@@ -324,8 +318,24 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
       }
     } // g: loop
 
-    eq.linear_algebra->assemble(com_mod, eNoN, ptr, lK, lR);
-
+    // Assembly
+#ifdef WITH_TRILINOS
+    if (eq.assmTLS) {
+      if (cPhys == Equation_ustruct) {
+        throw std::runtime_error("[construct_fsi] Cannot assemble USTRUCT using Trilinos");
+      }
+      trilinos_doassem_(const_cast<int&>(eNoN), ptr.data(), lK.data(), lR.data());
+    } else {
+#endif
+      if (cPhys == Equation_ustruct) {
+        //CALL USTRUCT_DOASSEM(eNoN, ptr, lKd, lK, lR)
+        throw std::runtime_error("[construct_fsi] USTRUCT_DOASSEM not implemented");
+      } else {
+        lhsa_ns::do_assem(com_mod, eNoN, ptr, lK, lR);
+      }
+#ifdef WITH_TRILINOS
+    }
+#endif
   } // e: loop
 
   #ifdef debug_construct_fsi
