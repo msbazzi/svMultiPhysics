@@ -1819,10 +1819,6 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
       lM.fN.clear();
     }
 
-  } else { 
-    lM.otnIEN.clear();
-  }
-
     // This it to distribute vwN, if allocated
     if (lM.vwN.size() != 0) {
       vwFlag = true;
@@ -1832,8 +1828,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
         tmpvw.set_col(Ec, lM.vwN.col(e));
       }
       lM.vwN.clear();
-    }
-
+    } 
   } else { 
     lM.otnIEN.clear();
   }
