@@ -314,6 +314,7 @@ void distribute(Simulation* simulation)
 
     cm.bcast(cm_mod, &com_mod.zeroAve);
     cm.bcast(cm_mod, &com_mod.cmmInit);
+    cm.bcast(cm_mod, &com_mod.useVarWall);
     cm.bcast(cm_mod, &com_mod.cmmVarWall);
 
     cm.bcast(cm_mod, &com_mod.shlEq);
@@ -1499,6 +1500,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
   cm.bcast(cm_mod, &lM.gnNo);
   cm.bcast(cm_mod, lM.name);
   cm.bcast(cm_mod, &lM.nFn);
+  cm.bcast(cm_mod, &lM.nvw);
   cm.bcast(cm_mod, &lM.scF);
   cm.bcast(cm_mod, &lM.qmTET4);
 
@@ -1742,8 +1744,10 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
 
   Array<int> tempIEN;
   Array<double> tmpFn;
-  flag = false;
+  Array<double> tmpvw;
+    flag = false;
   bool fnFlag = false;
+  bool vwFlag = false;
 
   #ifdef dbg_part_msh
   dmsg << "sCount: " << sCount;
@@ -1819,16 +1823,32 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
     lM.otnIEN.clear();
   }
 
+    // This it to distribute vwN, if allocated
+    if (lM.vwN.size() != 0) {
+      vwFlag = true;
+      tmpvw.resize(lM.nvw, lM.gnEl);
+      for (int e = 0; e < lM.gnEl; e++) {
+        int Ec = lM.otnIEN[e];
+        tmpvw.set_col(Ec, lM.vwN.col(e));
+      }
+      lM.vwN.clear();
+    }
+
+  } else { 
+    lM.otnIEN.clear();
+  }
   gPart.clear();
 
   cm.bcast(cm_mod, &flag);
   cm.bcast(cm_mod, &fnFlag);
+  cm.bcast(cm_mod, &vwFlag);
   cm.bcast(cm_mod, lM.eDist);
 
   nEl = lM.eDist[cm.id()+1] - lM.eDist[cm.id()];
   #ifdef dbg_part_msh
   dmsg << "flag: " << flag;
   dmsg << "fnFlag: " << fnFlag;
+  dmsg << "vwFlag: " << vwFlag;
   dmsg << "3 lM.eDist: " << lM.eDist;
   #endif
   lM.nEl = nEl;
@@ -1874,6 +1894,31 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
         cm_mod::mpreal, cm_mod.master, cm.com());
     tmpFn.clear();
   }
+
+
+  // Communicating cell variable wall properties, if neccessary
+  //
+  if (vwFlag) { 
+    #ifdef dbg_part_msh
+    dmsg << "Communicating vwN " << " ...";
+    dmsg << "nvw: " << nvw;
+    dmsg << "nsd: " << nsd;
+    dmsg << "nEl: " << nEl;
+    dmsg << "tmpvw.size(): " << tmpvw.size();
+    #endif
+    lM.vwN.resize(lM.nvw,nEl);
+    if (tmpvw.size() == 0) {
+      // ALLOCATE(tmpFn(0,0))
+    }
+    for (int i = 0; i < num_proc; i++) { 
+      disp[i] = lM.eDist[i] * lM.nvw * nsd;
+      sCount[i] = lM.eDist[i+1] * lM.nvw * nsd - disp[i];
+    }
+    MPI_Scatterv(tmpFn.data(), sCount.data(), disp.data(), cm_mod::mpreal, lM.vwN.data(), nEl*lM.nvw*nsd, 
+        cm_mod::mpreal, cm_mod.master, cm.com());
+    tmpvw.clear();
+  }
+
 
   // Now scattering the sorted lM%IEN to all processors.
   //

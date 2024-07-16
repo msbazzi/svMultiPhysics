@@ -1383,6 +1383,9 @@ class ComMod {
     /// @brief Whether variable wall properties are used for CMM
     bool cmmVarWall = false;
 
+    /// @brief Whether variable wall properties are used
+    bool useVarWall = false;
+
     /// @brief Whether shell equation is being solved
     bool shlEq = false;
 
