@@ -710,7 +710,7 @@ void read_vtu_pdata(const std::string& fName, const std::string& kwrd, const int
 
 // read mm parameters from a vtu file
 
-void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, mshType& mesh)
+void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, mshType& mesh, Simulation* simulation)
 {
   if (FILE *file = fopen(fName.c_str(), "r")) {
       fclose(file);
@@ -724,12 +724,13 @@ void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int
   int num_elems = vtk_data->num_elems();
   int num_points = vtk_data->num_points();
 
-  if (num_elem != mesh.gnEl) {
-    throw std::runtime_error("The number of elements (" + std::to_string(num_elem) +
+  if (num_elems != mesh.gnEl) {
+    throw std::runtime_error("The number of elements (" + std::to_string(num_elems) +
         ") in the file '" + fName + "' is not equal to the number of elements ("
         + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
   }
 
+  //vtk_xml_parser::load_vtu(fName, mesh);
   vtk_xml_parser::load_vwN_vtu(fName, kwrd, simulation->com_mod.nsd, mesh);
  
 }

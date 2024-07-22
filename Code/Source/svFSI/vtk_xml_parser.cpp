@@ -707,7 +707,7 @@ void load_vwN_vtu(const std::string& file_name, const std::string& data_name,
   if (FILE *file = fopen(file_name.c_str(), "r")) {
       fclose(file);
   } else {
-    throw std::runtime_error("The fiber direction VTK file '" + file_name + "' can't be read.");
+    throw std::runtime_error("The variable wall properties VTK file '" + file_name + "' can't be read.");
   }
 
   auto reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
@@ -723,7 +723,7 @@ void load_vwN_vtu(const std::string& file_name, const std::string& data_name,
   vtkIdType num_elems = vtk_ugrid->GetNumberOfCells();
   if (mesh.gnEl != num_elems) {
     throw std::runtime_error("The number of elements (" + std::to_string(num_elems) + 
-        ") in the fiber direction VTK file '" + file_name + "' is not equal to the number of elements (" 
+        ") in the variable wall properties VTK file '" + file_name + "' is not equal to the number of elements (" 
         + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
   }
 
@@ -736,7 +736,7 @@ void load_vwN_vtu(const std::string& file_name, const std::string& data_name,
   for (int e = 0; e < mesh.gnEl; e++) {
     auto vwn = vwN_data->GetTuple(e);
     for (int i = 0; i < mesh.nvw; i++) {
-      mesh.vwN(i, e) = vwn[i];
+      mesh.vwN(e) = vwn[i];
     }
    
   }

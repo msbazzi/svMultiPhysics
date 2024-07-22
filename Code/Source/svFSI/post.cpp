@@ -146,6 +146,7 @@ void bpost(Simulation* simulation, const mshType& lM, Array<double>& res, const 
 
   const int tnNo = com_mod.tnNo;
   const int nsd = com_mod.nsd;
+  const int nvw = lM.nvw;
 
   Vector<double> sA(tnNo); 
   Array<double> sF(maxNSD,tnNo); 
@@ -155,6 +156,7 @@ void bpost(Simulation* simulation, const mshType& lM, Array<double>& res, const 
   Array<double> lnV(nsd,eNoN); 
   Vector<double> N(eNoN); 
   Array<double> Nx(nsd,eNoN);
+  Vector<double> vwN(nvw);
 
   // First creating the norm field
   //
@@ -1707,7 +1709,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
 
   int tnNo = com_mod.tnNo;
   int nsd = com_mod.nsd;
-  int nvw =lM.nvw;
+  int nvw = lM.nvw;
   int tDof = com_mod.tDof;
   int nsymd = com_mod.nsymd;
 
@@ -1777,11 +1779,13 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
       }
     }
     
+    
     if (lM.vwN.size() != 0) {
       for (int i = 0; i < nsd; i++) {
-          vwN(i) = lM.vwN(i,e);
+          vwN(i) = lM.vwN(e);
       }
     }
+
 
     dl = 0.0;
     yl = 0.0;
@@ -1991,7 +1995,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
               resl(3) = sigma(0,1);
               resl(4) = sigma(1,2);
               resl(5) = sigma(2,0);
-              sE(e) = sE(e)+w*(sigma(0,0)+sigma(1,1)+sigma(2,2,));
+              sE(e) = sE(e)+w*(sigma(0,0)+sigma(1,1)+sigma(2,2));
             } else { 
               resl(0) = sigma(0,0);
               resl(1) = sigma(1,1);

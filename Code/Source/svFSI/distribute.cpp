@@ -1825,7 +1825,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
       tmpvw.resize(lM.nvw, lM.gnEl);
       for (int e = 0; e < lM.gnEl; e++) {
         int Ec = lM.otnIEN[e];
-        tmpvw.set_col(Ec, lM.vwN.col(e));
+        tmpvw.set_col(Ec, lM.vwN);
       }
       lM.vwN.clear();
     } 
@@ -1901,7 +1901,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
     dmsg << "nEl: " << nEl;
     dmsg << "tmpvw.size(): " << tmpvw.size();
     #endif
-    lM.vwN.resize(lM.nvw,nEl);
+    lM.vwN.resize(nEl);
     if (tmpvw.size() == 0) {
       // ALLOCATE(tmpFn(0,0))
     }

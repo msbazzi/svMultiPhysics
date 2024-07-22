@@ -615,7 +615,6 @@ class outputType
     std::string name;
 };
 
-
 /// @brief Linear system of equations solver type
 //
 class lsType
@@ -785,25 +784,6 @@ class cplBCType
     std::vector<cplFaceType> fa;
 };
 
-
-// solid_model_178: from Yuecheng July 2024
-// Class for material points
-class matPoint
-{
-  public:
-    int eleNum, gNum;
-    // Type of constitutive model (isochoric) for struct/FSI
-    consts::ConstitutiveModelType _isoType = consts::ConstitutiveModelType::stIso_NA;
-
-    matPoint(const stModelType &stM, int e, int g)
-    {
-      _isoType = stM.isoType;
-      eleNum = e;
-      gNum = g;
-    } 
-};
-
-
 /// @brief This is the container for a mesh or NURBS patch, those specific
 /// to NURBS are noted
 //
@@ -812,12 +792,6 @@ class mshType
   public:
     mshType();
     std::string dname = "";
-
-    // solid_model_178: from Yuecheng July 2024
-    // 2D array of material points
-    std::vector<std::vector<matPoint*>> matPts;
-    bool hasMatPts = false; 
-
 
 /*
     mshType(const mshType &other) 
@@ -964,7 +938,7 @@ class mshType
 
     /// @brief wall variable stored at the node level - used for g&r
     /// solid mechanics
-    Array<double> vwN;
+    Vector<double> vwN;
 
     /// @brief Parent shape functions gradient
     /// double Nx(:,:,:)
