@@ -511,6 +511,10 @@ void face_ini(Simulation* simulation, mshType& lM, faceType& lFa)
             sV(i,Ac) = sV(i,Ac) + nV(i)*lFa.N(a,g)*lFa.w(g);
           }
         }
+       // for (int i = 0; i < sV.nrows(); i++) { 
+       //   lFa.enV(i,e) = nV(i)/sqrt(norm(nV));
+       // } 
+      
       }
     }
 

@@ -1597,6 +1597,25 @@ void read_msh(Simulation* simulation)
       }
     }
   }
+  // Read cell variable wall valuess 
+   flag = false;
+
+  for (int iM = 0; iM < com_mod.nMsh; iM++) {
+    auto mesh_param = simulation->parameters.mesh_parameters[iM];
+    if (mesh_param->variable_wall_properties_file_path.defined()) {
+      /* [NOTE] Not implemented.
+      if (rmsh.isReqd) {
+        throw std::runtime_error("Prestress is currently not allowed with remeshing.");
+      }
+      */
+      auto cTmp = mesh_param->variable_wall_properties_file_path.value(); 
+      //auto cTmp2 = mesh_param->number_variable_wall_properties.value(); 
+      flag = true;
+      com_mod.msh[iM].x = Array<double>(com_mod.nsymd, com_mod.msh[iM].gnEl);
+      vtk_xml::read_vtu_cdata(cTmp, "varWallProps", com_mod.nsd, com_mod.nsymd, 0, com_mod.msh[iM], simulation);
+    }
+  }
+
 
   // Read prestress data.
   //

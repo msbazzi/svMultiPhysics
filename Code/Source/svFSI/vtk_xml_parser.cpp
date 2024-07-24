@@ -727,7 +727,7 @@ void load_vwN_vtu(const std::string& file_name, const std::string& data_name,
         + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
   }
 
-  // Get the 3-component fiber orientation data.
+  // Get the variable wall data data.
   auto vwN_data = vtkDoubleArray::SafeDownCast(vtk_ugrid->GetCellData()->GetArray(data_name.c_str()));
   if (vwN_data == nullptr) { 
     throw std::runtime_error("No '" + data_name + "' data found in vwN VTK file '" + file_name + "'");

@@ -129,7 +129,9 @@ enum class BoundaryConditionType
   bType_free = 19,     // shell free
   bType_symm = 20,     // shell symmetric 
   bType_undefNeu = 21, // undeforming Neu
-  bType_RCR = 22       // RCR-Neu
+  bType_RCR = 22,       // RCR-Neu
+  bType_ref = 23       // reference
+
 };
 
 // Define constants using smaller name and integer value (needed for bitwise operations).

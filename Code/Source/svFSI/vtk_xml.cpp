@@ -710,7 +710,7 @@ void read_vtu_pdata(const std::string& fName, const std::string& kwrd, const int
 
 // read mm parameters from a vtu file
 
-void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, mshType& mesh, Simulation* simulation)
+void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, const int idx, mshType& mesh, Simulation* simulation)
 {
   if (FILE *file = fopen(fName.c_str(), "r")) {
       fclose(file);

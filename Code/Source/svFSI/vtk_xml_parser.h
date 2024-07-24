@@ -60,6 +60,8 @@ void load_vtu(const std::string& file_name, mshType& mesh);
 
 void load_vtu(const std::string& file_name, faceType& face);
 
+void load_vwN_vtu(const std::string& file_name, const std::string& data_name, const int nsd, mshType& mesh);
+
 void load_time_varying_field_vtu(const std::string file_name, const std::string field_name, mshType& mesh);
 
 };
