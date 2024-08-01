@@ -474,7 +474,7 @@ void calc_mesh_props(ComMod& com_mod, const CmMod& cm_mod, const int nMesh, std:
 //
 void calc_nbc(mshType& mesh, faceType& face)
 {
-  #define n_debug_calc_nbc 
+  #define debug_calc_nbc 
   #ifdef debug_calc_nbc 
   DebugMsg dmsg(__func__, 0);
   dmsg.banner();

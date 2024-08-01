@@ -568,6 +568,10 @@ class faceType
     // Normal vector to each nodal point
     Array<double> nV;
 
+     // Normal vector to each element
+    Array<double> enV;
+
+
     // Shape functions derivative at Gauss points
     // double Nx(:,:,:);
     Array3<double> Nx;

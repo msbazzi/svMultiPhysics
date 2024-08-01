@@ -1454,7 +1454,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
   int num_proc = cm.np();
   int task_id = cm.idcm();
 
-  #define n_dbg_part_msh
+  #define dbg_part_msh
   #ifdef dbg_part_msh
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
@@ -1506,6 +1506,10 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
 
   // Number of fibers.
   int nFn = lM.nFn;
+
+
+  // Number of variable wall parameters.
+  int nvw = lM.nvw;
 
   // Set integration dimension.
   int nsd = com_mod.nsd;
@@ -1825,7 +1829,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
       tmpvw.resize(lM.nvw, lM.gnEl);
       for (int e = 0; e < lM.gnEl; e++) {
         int Ec = lM.otnIEN[e];
-        tmpvw.set_col(Ec, lM.vwN);
+        tmpvw.set_col(Ec, lM.vwN(e));
       }
       lM.vwN.clear();
     } 
