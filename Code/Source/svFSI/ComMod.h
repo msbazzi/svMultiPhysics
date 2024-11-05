@@ -942,7 +942,7 @@ class mshType
 
     /// @brief wall variable stored at the node level - used for g&r
     /// solid mechanics
-    Vector<double> vwN;
+    Array<double> vwN;
 
     /// @brief Parent shape functions gradient
     /// double Nx(:,:,:)

@@ -845,7 +845,7 @@ ten_ids(const int nd)
   return A;
 }
 
-/// @brief Double dot product of a 4th order tensor and a 2nd order tensor
+
 ///
 ///   C_ij = (A_ijkl * B_kl)
 //

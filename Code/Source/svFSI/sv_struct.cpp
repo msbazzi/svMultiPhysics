@@ -299,6 +299,13 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
         }
       }
 
+
+      if (lM.vwN.size() != 0) {
+        for (int ivn = 0; ivn < nvw; ivn++) {
+            vwN(ivn) = lM.vwN(ivn,e);
+        }
+      }
+
       if (pS0.size() != 0) { 
         pS0l.set_col(a, pS0.col(Ac));
       }

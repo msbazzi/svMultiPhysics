@@ -80,8 +80,8 @@ const std::map<std::string,ConstitutiveModelType> constitutive_model_name_to_typ
   {"Aniso", ConstitutiveModelType::stIso_aniso},
   {"aniso", ConstitutiveModelType::stIso_aniso},
 
-  {"CMM", ConstitutiveModelType::stIso_mix},
-  {"cmm", ConstitutiveModelType::stIso_mix},
+  {"Mix", ConstitutiveModelType::stIso_mix},
+  {"mix", ConstitutiveModelType::stIso_mix},
 
   {"MR", ConstitutiveModelType::stIso_MR}, 
   {"Mooney-Rivlin", ConstitutiveModelType::stIso_MR},

@@ -128,7 +128,7 @@ void voigt_to_cc(const int nsd,  double CC[N][N][N][N], double Dm[2*N][2*N])
 //-----------
 //
 template <size_t N>
-void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const double F[N][N], const int nfd,
+void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, double F[N][N], const int nfd,
     const Array<double>& fl, const double ya, double S[N][N], double Dm[2*N][2*N], int nvw, Vector<double>& vwN)
 {
   using namespace consts;
@@ -148,6 +148,7 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
   std::cout << msg_prefix << "========== get_pk2cc carray ==========" << std::endl;
   std::cout << msg_prefix << "N: " << N << std::endl;
   std::cout << msg_prefix << "nsd: " << nsd << std::endl;
+  std::cout << msg_prefix << "nvw: " << nvw << std::endl;
   #endif
 
   for (int i = 0; i < N; i++) {
@@ -241,9 +242,9 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
   
   if (stM.isoType == ConstitutiveModelType::stIso_aniso){
     if ( com_mod.time < 1.0){
-      dV = 1.0+com_mod.time*(vwN[38]-1.0)/1.0;  
+      dV = 1.0+com_mod.time*(vwN(37)-1.0)/1.0;  
     } else {
-      dV = vwN[38];
+      dV = vwN(37);
     }
     dV2d = pow(dV, -2/nd);
     p = Kp*(J/dV -1.0);
@@ -266,6 +267,8 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
   double Fps[N][N];
   double Sb[N][N];
   double Si[N][N];
+  double C_Sb_matddot; 
+  double Ci_C_dyadprod[N][N][N][N];
   
   mat_fun_carray::mat_id<N>(Sb);
   mat_fun_carray::ten_ids<N>(Ids);
@@ -274,121 +277,251 @@ void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn
 
   //Anisotropic linear hyperlasticity
     case ConstitutiveModelType::stIso_aniso: {
-
+      //std::cout << "Anisotropic linear hyperelasticity" << std::endl;
+      double g1 = vwN[36];
+     
+      for (int i = 0; i < N; ++i) {
+       for (int j = 0; j < N; ++j) {
+          Sb[i][j] = g1*Idm[i][j];
+       }
+      }
+      
       double DD[6][6];
       for (int i = 0; i < 6; ++i) {
-        for (int j = 0; j < 6; ++j) {
-            DD[i][j] = vwN[i * 6 + j];
-        }
+      for (int j = 0; j < 6; ++j) {
+          DD[i][j] = vwN[i * 6 + j];
+       }
       }
- 
-      double g1 = vwN[37];
+
 
       // Convert voigt notation to conventional notation
-      voigt_to_cc(nsd, CCb, DD); 
- 
+      voigt_to_cc<N>(nsd, CCb, DD); 
+     
       // compute isochoric component of E
-      for (int i = 0; i < nsd; i++) {
-        for (int j = 0; j < nsd; j++) {
-          E[i][j] = 0.5*((J2d/dV2d)*C[i][j] - Idm[i][j]);
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+         E[i][j] = 0.5*((J2d/dV2d)*C[i][j] - Idm[i][j]);
         }
       }
+      //std::cout << "compute isochoric component of E" << std::endl;
      
-      mat_fun_carray::ten_mddot(CCb, E, Sb);
+      mat_fun_carray::ten_mddot<N>(CCb, E, Sb);
 
       // Compute r1
-      double C_Sb_matddot; 
-      double Ci_C_dyadprod[N][N][N][N];
-      mat_fun_carray::ten_dyad_prod(Ci,C, Ci_C_dyadprod);
-      double r1 = (J2d/dV2d)* mat_fun_carray::mat_ddot(C, Sb)/nd;
 
-      for (int i = 0; i < nsd; i++) {
-        for (int j = 0; j < nsd; j++) {
+      mat_fun_carray::ten_dyad_prod<N>(Ci,C, Ci_C_dyadprod);
+     
+      double r1 = (J2d/dV2d)* mat_fun_carray::mat_ddot<N>(C, Sb)/nd;
+      //std::cout << "Sb: " << Sb << std::endl;
+
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
           S[i][j] = (J2d/dV2d)*Sb[i][j] - r1*Ci[i][j];
         }
       }
+      //std::cout << "S: " << S << std::endl;
 
-      for (int i = 0; i < nsd; i++) {
-        for (int j = 0; j < nsd; j++) {
-          for (int k = 0; k < nsd; k++) {
-            for (int l = 0; l < nsd; l++) {
-              CCb[i][j][k][l] =pow(J2d/dV2d,2)*CCb[i][j][k][l];
-              PP[i][j][k][l] = Ids[i][j][k][l] - (1.0/nd)*Ci_C_dyadprod[i][j][k][l];
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+          for (int k = 0; k < N; k++) {
+            for (int l = 0; l < N; l++) {
+               CCb[i][j][k][l] =pow(J2d/dV2d,2)*CCb[i][j][k][l];
+               PP[i][j][k][l] = Ids[i][j][k][l] - (1.0/nd)*Ci_C_dyadprod[i][j][k][l];
             }
-          }
-        }
-      }
-   
+         }
+       }
+     }
+
+      double ccten_ddot[N][N][N][N];
+      double cctranspose[N][N][N][N];
+      double Ci_S_dyad[N][N][N][N];
+      double S_Ci_dyad[N][N][N][N];
      
-      double S_Ci_dyadprod[N][N][N][N];
-      double Ci_S_dyadprod[N][N][N][N];
-      double CC_t[N][N][N][N];
+      mat_fun_carray::ten_ddot<N>(CCb, PP, ccten_ddot);
+      mat_fun_carray::ten_transpose<N>(ccten_ddot, cctranspose);
+      mat_fun_carray::ten_ddot<N>(PP, cctranspose, CC);
+      mat_fun_carray::ten_dyad_prod<N>(Ci, S, Ci_S_dyad);
+      mat_fun_carray::ten_dyad_prod<N>(S, Ci, S_Ci_dyad);
 
-      mat_fun_carray::ten_dyad_prod<N>(Ci, C, Ci_C_dyadprod);
-      mat_fun_carray::ten_ids<N>(Ids);
-      mat_fun_carray::ten_ddot<N>(CCb, PP, CC);    
-      mat_fun_carray::ten_transpose(CC, CC);
-      mat_fun_carray::ten_ddot(PP, CC, CC);
-      mat_fun_carray::ten_dyad_prod(S,Ci, S_Ci_dyadprod);
-      mat_fun_carray::ten_dyad_prod(Ci,S, Ci_S_dyadprod);
-
-      for (int i = 0; i < nsd; i++) {
-        for (int j = 0; j < nsd; j++) {
-          for (int k = 0; k < nsd; k++) {
-            for (int l = 0; l < nsd; l++) {
-              CC[i][j][k][l] += 2.0/nd* (Ci_S_dyadprod[i][j][k][l] + S_Ci_dyadprod[i][j][k][l]);
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+           for (int k = 0; k < N; k++) {
+              for (int l = 0; l < N; l++) {
+                 CC[i][j][k][l] =  CC[i][j][k][l]-2.0/nd*(Ci_S_dyad[i][j][k][l]  + S_Ci_dyad[i][j][k][l] );
             }
           }
         }
       }
-   
 
-      for (int i = 0; i < nsd; i++) {
-        for (int j = 0; j < nsd; j++) {
-          S[i][j] += (p+g1)*J*Ci[i][j];
+
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+           S[i][j] =S[i][j] + (p+g1)*J*Ci[i][j];
         }
       }
           
-      S[1][1] += vwN[38];
-      S[2][2] += vwN[39];
-      S[2][3] += vwN[40];
+      S[0][0] = S[0][0] + vwN[38];
+      S[1][1] = S[1][1] + vwN[39];
+      S[2][2] = S[2][2] + vwN[40];
 
-      S[1][2] += vwN[41];
-      S[2][3] += vwN[42];
-      S[3][1] += vwN[43];
+      S[0][1] = S[0][1] + vwN[41];
+      S[1][2] = S[1][2] + vwN[42];
+      S[2][0] = S[2][0] + vwN[43];
 
-      S[2][1] += vwN[41];
-      S[3][2] += vwN[42];
-      S[1][3] += vwN[43];
+      S[1][0] = S[1][0] + vwN[41];
+      S[2][1] = S[2][1] + vwN[42];
+      S[0][2] = S[0][2] + vwN[43];
+
+      //std::cout << "S: " << S[0][0] << std::endl;
+      
 
       double Ci_Ci_symm_prod[N][N][N][N];
       double Ci_Ci_prod[N][N][N][N];
       
       mat_fun_carray::ten_dyad_prod<N>(Ci, Ci, Ci_Ci_prod);
       mat_fun_carray::ten_symm_prod<N>(Ci, Ci, Ci_Ci_symm_prod);
+   
 
-      for (int i = 0; i < nsd; i++) {
-        for (int j = 0; j < nsd; j++) {
-          for (int k = 0; k < nsd; k++) {
-            for (int l = 0; l < nsd; l++) {
-              CC[i][j][k][l] += 2.0*(r1 - (p+g1)*J) * Ci_Ci_symm_prod[i][j][k][l] +  ((pl+g1)*J - 2.0*r1/nd) * Ci_Ci_prod[i][j][k][l];
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+           for (int k = 0; k < N; k++) {
+              for (int l = 0; l < N; l++) {
+                 CC[i][j][k][l] =CC[i][j][k][l] + 2.0*(r1 - (p+g1)*J) * Ci_Ci_symm_prod[i][j][k][l] +  ((pl+g1)*J - 2.0*r1/nd) * Ci_Ci_prod[i][j][k][l];
             }
           }
         }
       }
-    }
 
-   
+      //std::cout << "CC: " << CC[0][0][0][0] << std::endl;
+  
+    } break;
+    case ConstitutiveModelType::stIso_mix: {
 
+      // number of collagen constituents // THIS SHOULD BE AN INPUT
+      int nVars = 14;
+      int nIso  = 1;
+      int nAni  = 5;
+      int nAct  = 0;
+      Vector<double> f1(nsd);
+      Vector<double> f2(nsd);
+      Vector<double> f3(nsd);
+
+      for(int i = 0; i<=nIso ; i++) {
+        double vFa = vwN(0+(i)*nVars);
+        double p1  = vwN(1+(i)*nVars);
+        double p2  = vwN(2+(i)*nVars);
+        double p3  = vwN(3+(i)*nVars);
+        double g1  = vwN(4+(i)*nVars); 
+
+
+        for(int j=0; j<3; j++){
+          f1(j) = vwN(5+j+(i)*nVars);
+          f2(j) = vwN(8+j+(i)*nVars);
+          f3(j) = vwN(11+j+(i)*nVars);
+        }
+
+        for(int j=0; j<3;j++){
+          Q[0][j] = f1[j];
+          Q[1][j] = f2[j];
+          Q[2][j] = f3[j];
+        }
+
+        Fps[0][0] = p1;
+        Fps[1][1] = p2;
+        Fps[2][2] = p3;
+
+        double Fps_q_mul[N][N];
+        double Q_t[N][N];
+        double Fps_t[N][N];
+        double Fps_Fps_t[N][N];
+
+        mat_fun_carray::mat_mul<N>(Fps, Q, Fps_q_mul);  
+        mat_fun_carray::transpose<N>(Q, Q_t);
+        mat_fun_carray::mat_mul<N>(Q_t, Fps_q_mul, Fps);
+        mat_fun_carray::transpose<N>(Fps, Fps_t);
+        mat_fun_carray::mat_mul<N>(Fps, Fps_t, Fps_Fps_t);
+
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
+            Sb[i][j] = g1*Fps_Fps_t[i][j];
+          }
+        }
+
+        double C_Sb_ddot;
+        double Ci_Ci_symm_prod[N][N][N][N];
+        double Ci_Ci_prod[N][N][N][N];
+        double Ci_Si_prod[N][N][N][N];
+        double Si_Ci_prod[N][N][N][N];
+
+        C_Sb_ddot = mat_fun_carray::mat_ddot(C, Sb);
+        mat_fun_carray::ten_dyad_prod<N>(Ci, Ci, Ci_Ci_prod);
+        mat_fun_carray::ten_symm_prod<N>(Ci, Ci, Ci_Ci_symm_prod);
+
+        double r1 = J2d*C_Sb_ddot/nd;
+
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
+            Si[i][j] = J2d*Sb[i][j] - r1*Ci[i][j];
+          }
+        }
+
+        mat_fun_carray::ten_dyad_prod<N>(Ci, Si, Ci_Si_prod);
+        mat_fun_carray::ten_dyad_prod<N>(Si, Ci, Si_Ci_prod);
+
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
+            for (int k = 0; k < nsd; k++) {
+              for (int l = 0; l < nsd; l++) {
+                CCi[i][j][k][l] = -2.0/nd*Ci_Si_prod[i][j][k][l] + Si_Ci_prod[i][j][k][l];
+              }
+            }
+          }
+        }
+        
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
+            Si[i][j] = p*J*Ci[i][j];
+          }
+        }
+
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
+            for (int k = 0; k < nsd; k++) {
+              for (int l = 0; l < nsd; l++) {
+                CCi[i][j][k][l] = 2.0*(r1-p*J)*Ci_Ci_prod[i][j][k][l] + (pl*J-2*r1/nd)*Ci_Ci_symm_prod[i][j][k][l];
+              }
+            }
+          }
+        }
+
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
+            S[i][j] = S[i][j] + vFa*Si[i][j];
+          }
+        }
+
+        for (int i = 0; i < nsd; i++) {
+          for (int j = 0; j < nsd; j++) {
+            for (int k = 0; k < nsd; k++) {
+              for (int l = 0; l < nsd; l++) {
+                CC[i][j][k][l] = CC[i][j][k][l] + vFa*CCi[i][j][k][l];
+              }
+            }
+          }
+        }
+
+      }
+
+    } break;
 
     case ConstitutiveModelType::stIso_lin: {
       double g1 = stM.C10;    // mu
-      for (int i = 0; i < nsd; i++) {
-        for (int j = 0; j < nsd; j++) {
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
           S[i][j] = g1 * Idm[i][j];
         }
       }
-      return; 
+      
     } break;
 
     // St.Venant-Kirchhoff

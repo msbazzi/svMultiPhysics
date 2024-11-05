@@ -1454,7 +1454,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
   int num_proc = cm.np();
   int task_id = cm.idcm();
 
-  #define dbg_part_msh
+  #define n_dbg_part_msh
   #ifdef dbg_part_msh
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
@@ -1506,7 +1506,6 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
 
   // Number of fibers.
   int nFn = lM.nFn;
-
 
   // Number of variable wall parameters.
   int nvw = lM.nvw;
@@ -1826,10 +1825,10 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
     // This it to distribute vwN, if allocated
     if (lM.vwN.size() != 0) {
       vwFlag = true;
-      tmpvw.resize(lM.nvw, lM.gnEl);
+      tmpvw.resize(nvw, lM.gnEl);
       for (int e = 0; e < lM.gnEl; e++) {
         int Ec = lM.otnIEN[e];
-        tmpvw.set_col(Ec, lM.vwN(e));
+        tmpvw.set_col(Ec, lM.vwN.col(e));
       }
       lM.vwN.clear();
     } 
@@ -1897,6 +1896,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
 
   // Communicating cell variable wall properties, if neccessary
   //
+  
   if (vwFlag) { 
     #ifdef dbg_part_msh
     dmsg << "Communicating vwN " << " ...";
@@ -1905,15 +1905,16 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
     dmsg << "nEl: " << nEl;
     dmsg << "tmpvw.size(): " << tmpvw.size();
     #endif
-    lM.vwN.resize(nEl);
+    lM.vwN.resize(nvw,nEl);
     if (tmpvw.size() == 0) {
+      // tmpvw =0;
       // ALLOCATE(tmpFn(0,0))
     }
     for (int i = 0; i < num_proc; i++) { 
-      disp[i] = lM.eDist[i] * lM.nvw * nsd;
-      sCount[i] = lM.eDist[i+1] * lM.nvw * nsd - disp[i];
+      disp[i] = lM.eDist[i] * lM.nvw;
+      sCount[i] = lM.eDist[i+1] * lM.nvw - disp[i];
     }
-    MPI_Scatterv(tmpFn.data(), sCount.data(), disp.data(), cm_mod::mpreal, lM.vwN.data(), nEl*lM.nvw*nsd, 
+    MPI_Scatterv(tmpvw.data(), sCount.data(), disp.data(), cm_mod::mpreal, lM.vwN.data(), nEl*lM.nvw, 
         cm_mod::mpreal, cm_mod.master, cm.com());
     tmpvw.clear();
   }

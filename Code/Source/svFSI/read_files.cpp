@@ -243,6 +243,8 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
     if (bc_params->temporal_values_file_path.defined()) { 
       lBc.gt.lrmp = bc_params->ramp_function.value();
       auto file_name = bc_params->temporal_values_file_path.value();
+      std::cout << "Reading temporal values from file: " << file_name << std::endl;
+      //std::cout << "lBc: " << lBc << std::endl;
       read_temporal_values(file_name, lBc);
 
     } else { 
@@ -1298,7 +1300,7 @@ void read_domain(Simulation* simulation, EquationParameters* eq_params, eqType& 
               rtmp = domain_params->density.value();
             }
           break;
-
+        
           case PhysicalProperyType::solid_viscosity:
             rtmp = domain_params->solid_viscosity.value();
           break;
@@ -2128,16 +2130,20 @@ void read_mat_model(Simulation* simulation, EquationParameters* eq_params, Domai
 
   if (!domain_params->constitutive_model.defined()) { 
     lDmn.stM.isoType = ConstitutiveModelType::stIso_nHook;
+    //lDmn.stM.isoType = ConstitutiveModelType::stIso_mix;
     cmodel_type = ConstitutiveModelType::stIso_nHook;
+    //cmodel_type = ConstitutiveModelType::stIso_mix;
     cmodel_str = "neoHookean";
 
   // Get the constitutive model type.
   } else {
     cmodel_str = domain_params->constitutive_model.type.value();
+    std::cout<<"cmodel_str: "<<cmodel_str<<std::endl;
     try {
       cmodel_type = constitutive_model_name_to_type.at(cmodel_str);
+
     } catch (const std::out_of_range& exception) {
-      throw std::runtime_error("Unknown constitutive model type '" + cmodel_str + ".");
+      throw std::runtime_error("Unknown constitutive model type first one '" + cmodel_str + ".");
     }
   }
 
@@ -2579,8 +2585,11 @@ void read_temporal_values(const std::string& file_name, bcType& lBc)
     throw std::runtime_error("Failed to open the temporal values file '" + file_name + "'.");
   }
 
+
   int i, j;
-  temporal_values_file >> i >> j; 
+  temporal_values_file >> i >> j;
+  std::cout << "Opened file " << file_name << std::endl; 
+  std::cout << "Read values: i = " << i << ", j = " << j << std::endl; // Debug statement
   if (i < 2) {
     throw std::runtime_error("The temporal values file '" + file_name + "' has an incorrect format.");
   }
@@ -2630,9 +2639,11 @@ void read_temporal_values(const std::string& file_name, bfType& lBf)
   if (!temporal_values_file.is_open()) {
     throw std::runtime_error("Failed to open the temporal values file '" + file_name + "'.");
   }
-
+  std::cout << "Opened file " << file_name << std::endl;
+  
   int i, j;
   temporal_values_file >> i >> j; 
+  std::cout << "Read values: i = " << i << ", j = " << j << std::endl; // Debug statement
   if (i < 2) {
     throw std::runtime_error("The temporal values file '" + file_name + "' has an incorrect format.");
   }

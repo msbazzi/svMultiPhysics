@@ -42,6 +42,9 @@
   </Add_face>
 
   <Mesh_scale_factor> 100.0 </Mesh_scale_factor>  <!-- Convert from m to cm -->
+  <Number_variable_wall_properties> 360</Number_variable_wall_properties>
+  <Variable_wall_properties_file_path> mesh/solid-mesh-complete/mesh-complete.mesh.vtu </Variable_wall_properties_file_path>
+
 </Add_mesh>
 
 
@@ -54,9 +57,7 @@
    <Tolerance> 1e-9 </Tolerance> 
 
    <Density> 1.0 </Density>                           <!-- g/cm^3 -->
-   <Elasticity_modulus> 1.0e5 </Elasticity_modulus>   <!-- dyne/cm^2 -->
-   <Poisson_ratio> 0.483333 </Poisson_ratio>
-   <Constitutive_model type="neoHookean"> 
+   <Constitutive_model type="aniso"> 
       </Constitutive_model> 
    <Dilational_penalty_model> ST91 </Dilational_penalty_model>
    <Viscosity model="Constant" >

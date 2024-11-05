@@ -710,13 +710,14 @@ void read_vtu_pdata(const std::string& fName, const std::string& kwrd, const int
 
 // read mm parameters from a vtu file
 
-void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, const int idx, mshType& mesh, Simulation* simulation)
+void  read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, const int idx, mshType& mesh, Simulation* simulation)
 {
   if (FILE *file = fopen(fName.c_str(), "r")) {
       fclose(file);
   } else {
     throw std::runtime_error("The VTK VTU pressure data file '" + fName + "' can't be read.");
   }
+
 
   // Read the vtu file.
   //
@@ -730,9 +731,10 @@ void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int
         + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
   }
 
+ 
   //vtk_xml_parser::load_vtu(fName, mesh);
   vtk_xml_parser::load_vwN_vtu(fName, kwrd, simulation->com_mod.nsd, mesh);
- 
+
 }
 
 //-----------

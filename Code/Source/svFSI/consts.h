@@ -175,6 +175,9 @@ constexpr auto iBC_RCR = static_cast<int>(BoundaryConditionType::bType_RCR);
 constexpr auto BC_res = BoundaryConditionType::bType_res;
 constexpr auto iBC_res = static_cast<int>(BoundaryConditionType::bType_res);
 
+constexpr auto BC_ref = BoundaryConditionType::bType_ref;
+constexpr auto iBC_ref = static_cast<int>(BoundaryConditionType::bType_ref);
+
 constexpr auto BC_Robin = BoundaryConditionType::bType_Robin;
 constexpr auto iBC_Robin = static_cast<int>(BoundaryConditionType::bType_Robin);
 
