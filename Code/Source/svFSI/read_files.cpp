@@ -64,6 +64,7 @@ namespace read_files_ns {
 //
 void face_match(ComMod& com_mod, faceType& lFa, faceType& gFa, Vector<int>& ptr)
 {
+  std::cout << "face_match" << std::endl;
   using namespace read_msh_ns;
   int nsd = com_mod.nsd;
   int nBlkd = round(pow(static_cast<double>(gFa.nNo)/1000.0, 0.333));
@@ -103,6 +104,7 @@ void face_match(ComMod& com_mod, faceType& lFa, faceType& gFa, Vector<int>& ptr)
 
   std::vector<blkType> blk(nBlk);
   std::vector<int> nodeBlk(gFa.nNo); 
+  std::cout << "is finding blk" << std::endl;
 
   for (int a = 0; a < gFa.nNo; a++) {
     auto coord = gFa.x.col(a);
@@ -111,6 +113,7 @@ void face_match(ComMod& com_mod, faceType& lFa, faceType& gFa, Vector<int>& ptr)
     blk[iBlk].n = blk[iBlk].n + 1;
   }
 
+  std::cout << "is finding blk 2" << std::endl;
   for (int iBlk = 0; iBlk < nBlk; iBlk++) {
     blk[iBlk].gN = Vector<int>(blk[iBlk].n);
     blk[iBlk].n = 0;
@@ -122,6 +125,7 @@ void face_match(ComMod& com_mod, faceType& lFa, faceType& gFa, Vector<int>& ptr)
     blk[iBlk].n = blk[iBlk].n + 1;
   }
 
+  std::cout << "is finding blk 3" << std::endl;
   for (int a = 0; a < gFa.nNo; a++) {
     auto coord = lFa.x.col(a);
     int iBlk = find_blk(nsd, nBlkd, nFlt, xMin, dx, coord);
@@ -131,10 +135,13 @@ void face_match(ComMod& com_mod, faceType& lFa, faceType& gFa, Vector<int>& ptr)
       int b = blk[iBlk].gN[i];
       auto diff = lFa.x.col(a) - gFa.x.col(b);
       double ds = sqrt(diff*diff);
-
       if (ds < minS) {
         minS = ds;
         ptr[a] = b;
+            // Check if the value is NaN
+      if (std::isnan(ptr[a])) {
+          std::cout << "The value is NaN: " << ptr[a] << std::endl;
+      }
       }
     }
 
@@ -142,6 +149,7 @@ void face_match(ComMod& com_mod, faceType& lFa, faceType& gFa, Vector<int>& ptr)
       throw std::runtime_error("[face_match] Failed to find matching nodes between faces '" + lFa.name + "' and '" + gFa.name + "'.");
     }
   }
+  std::cout << "is finding blk 4" << std::endl;
 }
 
 //---------
@@ -181,6 +189,7 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
       lBc.gm.t[1] = 1.E+10;
       lBc.gm.period = lBc.gm.t[1];
       auto file_name = bc_params->traction_values_file_path.value();
+    
 
       read_trac_bcff(com_mod, lBc.gm, com_mod.msh[iM].fa[iFa], file_name);
 
@@ -2688,6 +2697,9 @@ void read_temporal_values(const std::string& file_name, bfType& lBf)
 //
 void read_trac_bcff(ComMod& com_mod, MBType& lMB, faceType& lFa, const std::string& fName)
 {
+
+  std::cout << "Read traction data" << std::endl;
+  
   if (FILE *file = fopen(fName.c_str(), "r")) {
       fclose(file);
   } else {
@@ -2744,6 +2756,7 @@ void read_trac_bcff(ComMod& com_mod, MBType& lMB, faceType& lFa, const std::stri
     vtp_data.copy_point_data(data_name, tmpX2);
   }
 
+  std::cout << "Set coordinates" << std::endl;
   // Project traction from gFa to lFa. First prepare lFa%x, lFa%IEN
   //
   lFa.x.resize(com_mod.nsd, lFa.nNo);
@@ -2753,14 +2766,17 @@ void read_trac_bcff(ComMod& com_mod, MBType& lMB, faceType& lFa, const std::stri
     lFa.x.set_col(a, com_mod.x.col(Ac));
   }
 
+  std::cout << "lFa.nNo" << lFa.nNo <<std::endl;
   Vector<int> ptr(lFa.nNo);
   ptr = -1;
   gFa.name = "face from traction vtp";
   face_match(com_mod, lFa, gFa, ptr);
 
+  std::cout << "Face match" << std::endl;
   // Copy pressure/traction data to MB data structure
   //
   if (lMB.dof == 1) {
+    std::cout << "Copying traction data" << std::endl;
     for (int a = 0; a < lFa.nNo; a++) {
       int Ac = ptr[a];
       lMB.d(0,a,0) = -tmpX1[Ac];
@@ -2768,6 +2784,7 @@ void read_trac_bcff(ComMod& com_mod, MBType& lMB, faceType& lFa, const std::stri
     }
 
   } else { 
+    std::cout << "Copying traction data 2" << std::endl;
     for (int a = 0; a < lFa.nNo; a++) {
       int Ac = ptr[a];
       for (int i = 0; i < lMB.dof; i++) {
@@ -2775,6 +2792,7 @@ void read_trac_bcff(ComMod& com_mod, MBType& lMB, faceType& lFa, const std::stri
         lMB.d(i,a,1) = tmpX2(i,Ac);
       }
     }
+    std::cout << "Outside for, lMB.dof" << lMB.dof <<std::endl;
   }
 }
 

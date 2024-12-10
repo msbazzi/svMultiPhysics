@@ -1677,7 +1677,7 @@ void set_bc_trac_l(ComMod& com_mod, const CmMod& cm_mod, const bcType& lBc, cons
 {
   using namespace consts;
 
-  #define n_debug_set_bc_trac_l 
+  #define debug_set_bc_trac_l 
   #ifdef debug_set_bc_trac_l 
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
