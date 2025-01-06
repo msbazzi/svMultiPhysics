@@ -1,0 +1,117 @@
+#----------------------------------------------------------------
+# General simulation parameters
+
+Continue previous simulation: 1
+Number of spatial dimensions: 3
+Number of time steps: 12000
+Time step size: 0.001
+Spectral radius of infinite time step: 0.50
+Searched file name to trigger stop: STOP_SIM
+
+Save results to VTK format: 1
+Name prefix of saved VTK files: result
+Increment in saving VTK files: 500
+Start saving after time step: 1
+
+Increment in saving restart files: 500
+Convert BIN to VTK format: 0
+
+Verbose: 1
+Warning: 0
+Debug: 0
+
+#----------------------------------------------------------------
+# Mesh data
+#
+Add mesh: fluid {
+   Mesh file path :                                        ../mesh_fluid/mesh-complete.mesh.vtu
+   Add face: fluid_wall                 { Face file path : ../mesh_fluid/mesh-surfaces/surface.vtp }
+   Add face: fluid_inlet                { Face file path : ../mesh_fluid/mesh-surfaces/inlet.vtp}
+   Add face: fluid_BCT                  { Face file path : ../mesh_fluid/mesh-surfaces/branch_1.vtp}
+   Add face: fluid_LCC                  { Face file path : ../mesh_fluid/mesh-surfaces/branch_2.vtp}
+   Add face: fluid_LSA                  { Face file path : ../mesh_fluid/mesh-surfaces/branch_3.vtp}
+   Add face: fluid_outlet               { Face file path : ../mesh_fluid/mesh-surfaces/outlet.vtp}
+   Domain: 1
+}
+
+#----------------------------------------------------------------
+# Equations
+#
+Add equation: fluid {
+   Coupled: 1
+   Min iterations: 1
+   Max iterations: 5
+   Tolerance: 1e-4
+
+   Density: 0.00106 #  g/mm^3 [1.1 g/cm^3]  
+   Viscosity: Constant {Value: 0.004}  #  g/mm s  [ 0.04 g / cm s], 4.0 cP
+   Backflow stabilization coefficient: 0.3
+
+   LS type: NS {
+      Max iterations:      10
+      NS-GM max iterations: 5
+      NS-CG max iterations: 500
+      Tolerance:           1D-4
+      NS-GM tolerance:     1D-4
+      NS-CG tolerance:     1D-4
+
+      Absolute tolerance:  1D-9
+      Krylov space dimension: 100
+   }
+
+   Output: Spatial {
+      Velocity: t
+      Pressure: t
+      Traction: t
+   }
+
+   Output: Boundary_integral {
+      Pressure: t
+      Velocity: t
+   }
+
+
+   Add BC: fluid_inlet {
+      Type: Dirichlet
+      Time dependence: Steady
+      Value: -72702.78212   # mean flowrate of ../../RUNS_no_FLAPID/flowrate_TBAD2011_ORIG_03272021.flow 
+      Profile: Parabolic
+      Impose flux: 1
+   }
+
+
+   Add BC: fluid_BCT {
+      Type: Neu
+      Time dependence: RCR
+      RCR values: ( 0.183297107, 1.009196124, 0.733188429)
+      Distal pressure: 0.0
+   }
+
+   Add BC: fluid_LCC {
+      Type: Neu
+      Time dependence: RCR
+      RCR values: ( 0.876638340, 0.211013735, 3.506553358)
+      Distal pressure: 0.0
+   }
+
+   Add BC: fluid_LSA {
+      Type: Neu
+      Time dependence: RCR
+      RCR values: ( 0.504067045, 0.366980409, 2.016268181)
+      Distal pressure: 0.0
+   }
+
+   Add BC: fluid_outlet {
+      Type: Neu
+      Time dependence: RCR
+      RCR values: ( 0.035876658, 5.156074745, 0.143506632)
+      Distal pressure: 0.0
+   }
+
+   Add BC: fluid_wall {
+      Type: Dirichlet
+      Time dependence: Steady
+      Value: 0
+   }
+}
+

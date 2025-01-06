@@ -1,0 +1,111 @@
+#----------------------------------------------------------------
+# General simulation parameters
+
+Continue previous simulation: 1
+Number of spatial dimensions: 3
+Number of time steps: 12000
+Time step size: 0.001
+Spectral radius of infinite time step: 0.50
+Searched file name to trigger stop: STOP_SIM
+
+Save results to VTK format: 1
+Name prefix of saved VTK files: result
+Increment in saving VTK files: 1000
+Start saving after time step: 1
+
+Increment in saving restart files: 200
+Convert BIN to VTK format: 0
+
+Verbose: 1
+Warning: 0
+Debug: 0
+
+#----------------------------------------------------------------
+# Mesh data
+#--- You need to add all mesh entries under a "Add mesh" directive
+Add mesh: wall {
+   Mesh file path :                            ../mesh_solid/mesh-complete.mesh.vtu
+   Add face : wall_inner    { Face file path : ../mesh_solid/mesh-surfaces/inner_surface.vtp }
+   Add face : wall_outer    { Face file path : ../mesh_solid/mesh-surfaces/outer_surface.vtp }
+   Add face : wall_inlet    { Face file path : ../mesh_solid/mesh-surfaces/inlet.vtp }
+   Add face : wall_BCT      { Face file path : ../mesh_solid/mesh-surfaces/branch_1.vtp }
+   Add face : wall_LCC_LSA  { Face file path : ../mesh_solid/mesh-surfaces/branch_2.vtp }
+   Add face : wall_outlet   { Face file path : ../mesh_solid/mesh-surfaces/outlet.vtp }
+   Domain: 2
+}
+
+#----------------------------------------------------------------
+# Equations
+Add equation: struct {
+   Coupled: 1
+   Min iterations: 1
+   Max iterations: 10
+   Tolerance: 1e-6
+
+   Prestress: t
+
+# TBAD 2009: 
+# Parameters from KB 2023-06-29
+# true lumen outer wall
+Domain: 2 {
+      Constitutive model: nHK
+      Dilational penalty model: ST91
+      Density: 0.0012 # [1.2 g/cm^3]
+      Elasticity modulus: 600.0e3 # 600 kPa in TL outer wall
+      Poisson ratio: 0.49
+   }
+
+   Output: Spatial {
+      Stress: t
+      Displacement: t
+   }
+
+   LS type: GMRES
+   {
+      Preconditioner:     FSILS
+      Max iterations:      100
+      Tolerance:           1D-4
+      Krylov space dimension: 50
+   }
+
+   Add BC: wall_inner { 
+      Type: Traction
+      Traction values file path : ./traction.vtp
+   }
+
+   Add BC: wall_outer { 
+      Type: Robin
+      Time dependence: Steady 
+      Value: 0.0d0
+      Stiffness: 1.8D4
+      Damping: 3.0D1
+   }
+
+   Add BC: wall_inlet { 
+           Type: Dirichlet
+           Time dependence: Steady
+           Value: 0.0d0
+           Impose on state variable integral: t
+   }
+
+   Add BC: wall_BCT { 
+           Type: Dirichlet
+           Time dependence: Steady
+           Value: 0.0d0
+           Impose on state variable integral: t
+   }
+
+   Add BC: wall_LCC_LSA { 
+           Type: Dirichlet
+           Time dependence: Steady
+           Value: 0.0d0
+           Impose on state variable integral: t
+   }
+
+   Add BC: wall_outlet { 
+           Type: Dirichlet
+           Time dependence: Steady
+           Value: 0.0d0
+           Impose on state variable integral: t
+   }
+}
