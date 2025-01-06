@@ -474,7 +474,7 @@ void calc_mesh_props(ComMod& com_mod, const CmMod& cm_mod, const int nMesh, std:
 //
 void calc_nbc(mshType& mesh, faceType& face)
 {
-  #define n_debug_calc_nbc 
+  #define debug_calc_nbc 
   #ifdef debug_calc_nbc 
   DebugMsg dmsg(__func__, 0);
   dmsg.banner();
@@ -514,7 +514,7 @@ void calc_nbc(mshType& mesh, faceType& face)
       auto elem_conn = mesh.gIEN.col(Ec);
       if (std::find(elem_conn.begin(), elem_conn.end(), Ac) == elem_conn.end()) {
         throw std::runtime_error(msg + "element " + std::to_string(e) + " has a node " + std::to_string(Ac) + 
-            " that does not belong to its parent element " + std::to_string(Ec) + ".");
+            " that does not belong to its parent element " + std::to_string(Ec) + "Elem Ien  " + std::to_string(face.IEN(1,e)) + ".");
       }
 
       if (incNd(Ac) == 0) {
@@ -1597,6 +1597,50 @@ void read_msh(Simulation* simulation)
       }
     }
   }
+  // Read cell variable wall values
+  
+
+  flag = false;
+
+  for (int iM = 0; iM < com_mod.nMsh; iM++) {
+    auto mesh_param = simulation->parameters.mesh_parameters[iM];
+   
+ 
+    if (mesh_param->variable_wall_properties_file_path.defined()) {
+      flag = true;
+      break; 
+    }
+  }
+
+  if (flag) {
+    for (int iM = 0; iM < com_mod.nMsh; iM++) {
+     
+      auto mesh_param = simulation->parameters.mesh_parameters[iM];
+      com_mod.msh[iM].nvw = mesh_param->number_variable_wall_properties.value(); 
+      int num_elems = com_mod.msh[iM].gnEl;
+      com_mod.msh[iM].vwN = Array<double>(com_mod.msh[iM].nvw, num_elems);
+      com_mod.msh[iM].vwN = 0.0;
+       
+      for (int i = 0; i < com_mod.msh[iM].nvw; i++) {
+        auto cTmp = mesh_param->variable_wall_properties_file_path.value(); 
+        vtk_xml::read_vtu_cdata(cTmp, "varWallProps", com_mod.nsd, com_mod.nsymd, 0, com_mod.msh[iM], simulation);
+
+        }
+      }
+  }
+
+  /*for (int iM = 0; iM < com_mod.nMsh; iM++) {
+    auto mesh_param = simulation->parameters.mesh_parameters[iM];
+    if (mesh_param->variable_wall_properties_file_path.defined()) {
+      auto cTmp = mesh_param->variable_wall_properties_file_path.value(); 
+      com_mod.msh[iM].nvw = mesh_param->number_variable_wall_properties.value(); 
+      flag = true;
+      //useVarWall = true;
+      com_mod.msh[iM].x = Array<double>(com_mod.msh[iM].nvw,com_mod.msh[iM].gnEl);
+      vtk_xml::read_vtu_cdata(cTmp, "varWallProps", com_mod.nsd, com_mod.nsymd, 0, com_mod.msh[iM], simulation);
+    }
+  } */
+
 
   // Read prestress data.
   //

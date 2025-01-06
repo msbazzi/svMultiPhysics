@@ -476,6 +476,7 @@ void face_ini(Simulation* simulation, mshType& lM, faceType& lFa)
   // Compute face normals at nodes
   //
   lFa.nV.resize(nsd,lFa.nNo); 
+  lFa.enV.resize(nsd,lFa.nEl); 
   Array<double> sV(nsd,com_mod.tnNo);
 
   bool flag = false;
@@ -511,7 +512,11 @@ void face_ini(Simulation* simulation, mshType& lM, faceType& lFa)
             sV(i,Ac) = sV(i,Ac) + nV(i)*lFa.N(a,g)*lFa.w(g);
           }
         }
+      
       }
+        for (int i = 0; i < sV.nrows(); i++) { 
+          lFa.enV(i,e) = nV(i)/sqrt(utils::norm(nV)); // store element normals
+       } 
     }
 
   // For higher order elements, use reduced order basis on mesh to project element normals. 

@@ -568,6 +568,10 @@ class faceType
     // Normal vector to each nodal point
     Array<double> nV;
 
+     // Normal vector to each element
+    Array<double> enV;
+
+
     // Shape functions derivative at Gauss points
     // double Nx(:,:,:);
     Array3<double> Nx;
@@ -860,6 +864,9 @@ class mshType
     /// @brief Number of fiber directions
     int nFn = 0;
 
+    /// @brief Number of wall variables
+    int nvw = 0;
+
     /// @brief Mesh scale factor
     double scF = 0.0;
 
@@ -932,6 +939,10 @@ class mshType
     /// @brief Fiber orientations stored at the element level - used for
     /// electrophysiology and solid mechanics
     Array<double> fN;
+
+    /// @brief wall variable stored at the node level - used for g&r
+    /// solid mechanics
+    Array<double> vwN;
 
     /// @brief Parent shape functions gradient
     /// double Nx(:,:,:)
@@ -1356,6 +1367,9 @@ class ComMod {
 
     /// @brief Whether variable wall properties are used for CMM
     bool cmmVarWall = false;
+
+    /// @brief Whether variable wall properties are used
+    bool useVarWall = false;
 
     /// @brief Whether shell equation is being solved
     bool shlEq = false;

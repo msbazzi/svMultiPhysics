@@ -610,7 +610,6 @@ SetEquationPropertiesMapType set_equation_props = {
 
   lEq.phys = consts::EquationType::phys_ustruct;
   com_mod.sstEq = true;
-  
   propL[0][0] = PhysicalProperyType::solid_density;
   propL[1][0] = PhysicalProperyType::elasticity_modulus;
   propL[2][0] = PhysicalProperyType::poisson_ratio;
@@ -622,7 +621,7 @@ SetEquationPropertiesMapType set_equation_props = {
   if (simulation->com_mod.nsd == 3) {
     propL[8][0] = PhysicalProperyType::f_z;
   }
-
+  
   read_domain(simulation, eq_params, lEq, propL);
 
   nDOP = {14, 2, 0, 0};

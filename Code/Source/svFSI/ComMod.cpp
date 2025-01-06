@@ -57,6 +57,7 @@ ComMod::ComMod()
   zeroAve      = false;
   cmmInit      = false;
   cmmVarWall   = false;
+  useVarWall   = false;
   shlEq        = false;
   pstEq        = false;
   sstEq        = false;

@@ -129,7 +129,9 @@ enum class BoundaryConditionType
   bType_free = 19,     // shell free
   bType_symm = 20,     // shell symmetric 
   bType_undefNeu = 21, // undeforming Neu
-  bType_RCR = 22       // RCR-Neu
+  bType_RCR = 22,       // RCR-Neu
+  bType_ref = 23       // reference
+
 };
 
 // Define constants using smaller name and integer value (needed for bitwise operations).
@@ -173,6 +175,9 @@ constexpr auto iBC_RCR = static_cast<int>(BoundaryConditionType::bType_RCR);
 constexpr auto BC_res = BoundaryConditionType::bType_res;
 constexpr auto iBC_res = static_cast<int>(BoundaryConditionType::bType_res);
 
+constexpr auto BC_ref = BoundaryConditionType::bType_ref;
+constexpr auto iBC_ref = static_cast<int>(BoundaryConditionType::bType_ref);
+
 constexpr auto BC_Robin = BoundaryConditionType::bType_Robin;
 constexpr auto iBC_Robin = static_cast<int>(BoundaryConditionType::bType_Robin);
 
@@ -209,6 +214,8 @@ enum class ConstitutiveModelType
   stIso_HO = 608,
   stIso_HO_ma = 610,
   stIso_LS = 611,
+  stIso_aniso = 612,
+  stIso_mix = 613,
   stVol_NA = 650,
   stVol_Quad = 651, 
   stVol_ST91 = 652, 

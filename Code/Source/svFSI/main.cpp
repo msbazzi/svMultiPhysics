@@ -209,7 +209,7 @@ void iterate_solution(Simulation* simulation)
 
   std::cout << std::scientific << std::setprecision(16);
 
-  #define n_debug_iterate_solution
+  #define u_debug_iterate_solution
   #ifdef debug_iterate_solution
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
@@ -432,10 +432,10 @@ void iterate_solution(Simulation* simulation)
       #ifdef debug_iterate_solution
       dmsg << "Assembling equation:  " << eq.sym;
       #endif
-
       for (int iM = 0; iM < com_mod.nMsh; iM++) {
         eq_assem::global_eq_assem(com_mod, cep_mod, com_mod.msh[iM], Ag, Yg, Dg);
       }
+
       com_mod.R.write("R_as"+ istr);
       com_mod.Val.write("Val_as"+ istr);
 
@@ -509,6 +509,7 @@ void iterate_solution(Simulation* simulation)
       #ifdef debug_iterate_solution
       dmsg << "com_mod.sstEq: " << com_mod.sstEq;
       #endif
+      
       if (com_mod.sstEq) {
         ustruct::ustruct_r(com_mod, Yg);
       }
@@ -572,10 +573,14 @@ void iterate_solution(Simulation* simulation)
       dmsg << "Solving equation: " << eq.sym; 
       #endif
 
+      //std::cout << "ls_solver before " << std::endl;
+
       ls_ns::ls_solve(com_mod, eq, incL, res);
 
       com_mod.Val.write("Val_solve"+ istr);
       com_mod.R.write("R_solve"+ istr);
+
+      //std::cout << "ls_solver after " << std::endl;
 
       // Solution is obtained, now updating (Corrector) and check for convergence
       //
@@ -601,12 +606,13 @@ void iterate_solution(Simulation* simulation)
       output::output_result(simulation, com_mod.timeP, 2, iEqOld);
 
       inner_count += 1;
+      //std::cout << "inner_count: " << inner_count << std::endl;
     } // Inner loop
 
     #ifdef debug_iterate_solution
     dmsg << ">>> End of inner loop " << std::endl; 
     #endif
-
+    //std::cout << ">>> End of inner loop " << std::endl;
     // IB treatment: interpolate flow data on IB mesh from background
     // fluid mesh for explicit coupling, update old solution for implicit
     // coupling

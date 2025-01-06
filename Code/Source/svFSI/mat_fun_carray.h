@@ -351,6 +351,20 @@ void ten_dyad_prod(const Array<double>& A, const Array<double>& B, double C[N][N
     C[i][j][k][l] = A(i,j) * B(k,l);
   }
 }
+template <size_t N>
+void ten_dyad_prod_n(const double A[N][N], const double B[N][N], double C[N][N][N][N])
+{   
+  int nn = pow(N,4);
+
+  for (int ii = 0; ii < nn; ii++) {
+    int i = t_ind(0,ii);
+    int j = t_ind(1,ii);
+    int k = t_ind(2,ii);
+    int l = t_ind(3,ii);
+    C[i][j][k][l] = A[i][j] * B[k][l];
+  }
+}
+
 
 template <size_t N>
 void ten_symm_prod(const double A[N][N], const double B[N][N], double C[N][N][N][N])
@@ -437,6 +451,31 @@ void ten_ddot(const double A[N][N][N][N], const double B[N][N][N][N], double C[N
   }
 
 }
+/// @brief Double dot product of a 4th order tensor and a 2nd order tensor
+template <size_t N>
+void ten_mddot(const double A[N][N][N][N], const double B[N][N], double C[N][N]) 
+{
+  if (N == 2) {
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        C[i][j] = A[i][j][0][0]*B[0][0] + A[i][j][0][1]*B[0][1] + A[i][j][1][0]*B[1][0] 
+        + A[i][j][1][1]*B[1][1];
+      }
+    }
+
+  } else { 
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        C[i][j] = A[i][j][0][0]*B[0][0] + A[i][j][0][1]*B[0][1] + A[i][j][0][2]*B[0][2] + A[i][j][1][0]*B[1][0] + 
+            A[i][j][1][1]*B[1][1] + A[i][j][1][2]*B[1][2] + A[i][j][2][0]*B[2][0] + A[i][j][2][1]*B[2][1] + 
+            A[i][j][2][2]*B[2][2];
+        }
+     }
+  }
+  //std::cout << "C[0][0]: " << C[0][0] << std::endl;
+  
+}
+
 
 template <size_t N>
 double norm(const double u[N], const double v[N])

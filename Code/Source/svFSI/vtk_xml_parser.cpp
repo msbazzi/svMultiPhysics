@@ -594,10 +594,39 @@ void store_nodal_ids(vtkSmartPointer<vtkUnstructuredGrid> vtk_ugrid, faceType& f
 void store_nodal_ids(vtkSmartPointer<vtkPolyData> vtk_polydata, faceType& face)
 {
   vtkIdType num_nodes = vtk_polydata->GetNumberOfPoints();
-  auto node_ids = vtkIntArray::SafeDownCast(vtk_polydata->GetPointData()->GetArray(NODE_IDS_NAME.c_str()));
+
+  auto point_data = vtk_polydata->GetPointData();
+    // Print all available arrays in the point data
+    //std::cout << "Available arrays in point data:" << std::endl;
+    for (int i = 0; i < point_data->GetNumberOfArrays(); ++i) {
+        //std::cout << "Array " << i << ": " << point_data->GetArrayName(i) << std::endl;
+    }
+
+    //std::cout << "Looking for array: " << NODE_IDS_NAME << std::endl;
+    auto array = point_data->GetArray(NODE_IDS_NAME.c_str());
+    if (array == nullptr) {
+        std::cout << "[store_nodal_ids] Array " << NODE_IDS_NAME << " not found in point data." << std::endl;
+        return;
+    }
+
+    //std::cout << "Array " << NODE_IDS_NAME << " found with type: " << array->GetDataType() << std::endl;
+
+    auto node_ids = vtkIntArray::SafeDownCast(array);
+    if (node_ids == nullptr) {
+        std::cout << "[store_nodal_ids] Array " << NODE_IDS_NAME << " is not of type vtkIntArray." << sizeof(vtkIntArray) << std::endl;
+        return;
+    }
+
+    //std::cout << "Found array: " << NODE_IDS_NAME << " with " << node_ids->GetNumberOfValues() << " values." << std::endl;
+  
+
+
+  //auto node_ids = vtkIntArray::SafeDownCast(vtk_polydata->GetPointData()->GetArray(NODE_IDS_NAME.c_str()));
   if (node_ids == nullptr) {
+    std::cout << "[store_nodal_ids] face.gN " << node_ids << std::endl;
     return; 
   }
+
   face.gN = Vector<int>(num_nodes);
   for (int i = 0; i < num_nodes; i++) {
     // [NOTE] It seems that face node IDs are 1 based.
@@ -609,6 +638,7 @@ void store_nodal_ids(vtkSmartPointer<vtkPolyData> vtk_polydata, faceType& face)
 void store_nodal_ids(vtkSmartPointer<vtkPolyData> vtk_polydata, mshType& mesh)
 {
   vtkIdType num_nodes = vtk_polydata->GetNumberOfPoints();
+  
   auto node_ids = vtkIntArray::SafeDownCast(vtk_polydata->GetPointData()->GetArray(NODE_IDS_NAME.c_str()));
   if (node_ids == nullptr) {
     return;
@@ -617,7 +647,7 @@ void store_nodal_ids(vtkSmartPointer<vtkPolyData> vtk_polydata, mshType& mesh)
   for (int i = 0; i < num_nodes; i++) {
     // [NOTE] It seems that face node IDs are 1 based.
     mesh.gN(i) = node_ids->GetValue(i) - 1;
-    //std::cout << "[store_nodal_ids] face.gN(" << i << "): " << face.gN(i) << std::endl;
+    // std::cout << "[store_nodal_ids] face.gN(" << i << "): " << face.gN(i) << std::endl;
   }
 }
 
@@ -692,6 +722,70 @@ void load_fiber_direction_vtu(const std::string& file_name, const std::string& d
     }
     //std::cout << "[load_fiber_direction_vtu] e mesh.fN: " << e+1 << " " << mesh.fN.col(e) << std::endl;
   }
+}
+
+
+void load_vwN_vtu(const std::string& file_name, const std::string& data_name, 
+    const int nsd, mshType& mesh)
+{
+  #ifdef debug_load_vwN_vtu
+  std::cout << "[load_vwN_vtu] " << std::endl;
+  std::cout << "[load_vwN_vtu] ===== vtk_xml_parser::load_vwN_vtu ===== " << std::endl;
+  #endif
+  using namespace vtk_xml_parser;
+
+  if (FILE *file = fopen(file_name.c_str(), "r")) {
+      fclose(file);
+  } else {
+    throw std::runtime_error("The variable wall properties VTK file '" + file_name + "' can't be read.");
+  }
+
+  auto reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
+  reader->SetFileName(file_name.c_str());
+  reader->Update();
+  vtkSmartPointer<vtkUnstructuredGrid> vtk_ugrid = reader->GetOutput();
+
+  vtkIdType num_nodes = vtk_ugrid->GetNumberOfPoints();
+  if (num_nodes == 0) {
+    throw std::runtime_error("Failed reading the VTK file '" + file_name + "'.");
+  }
+
+  vtkIdType num_elems = vtk_ugrid->GetNumberOfCells();
+  if (mesh.gnEl != num_elems) {
+    throw std::runtime_error("The number of elements (" + std::to_string(num_elems) + 
+        ") in the variable wall properties VTK file '" + file_name + "' is not equal to the number of elements (" 
+        + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
+  }
+
+  // Get the variable wall data data.
+  auto vwN_data = vtkDoubleArray::SafeDownCast(vtk_ugrid->GetCellData()->GetArray(data_name.c_str()));
+  if (vwN_data == nullptr) { 
+    throw std::runtime_error("No '" + data_name + "' data found in vwN VTK file '" + file_name + "'");
+  }
+   for (int e = 0; e < mesh.gnEl; e++) {
+    double* vwn = vwN_data->GetTuple(e);
+    // Assuming vwN_data is already defined and initialized  
+    vtkIdType numRows = vwN_data->GetNumberOfTuples();
+    vtkIdType numCols = vwN_data->GetNumberOfComponents();    
+     
+    if (numCols!=mesh.nvw) {
+      throw std::runtime_error("The number of variable wall properties (" + std::to_string(numCols) + 
+        ") in the variable wall properties VTK file '" + file_name + "' is not equal to the number of variable wall properties (" 
+        + std::to_string(mesh.nvw) + ") for the mesh named '" + mesh.name + "'.");
+    }
+    //mesh.vwN.row() = vwn_data -> GetTuple(e);
+    for (int i = 0; i < mesh.nvw; i++) {
+      if (std::isnan(vwn[i]) || !std::isfinite(vwn[i])) {
+      throw std::runtime_error("Invalid value (NaN or infinity) found in the variable wall properties data for element " + std::to_string(e) + " at index " + std::to_string(i));
+      }
+      mesh.vwN(i,e) = vwn[i];
+    }
+   // Check the size of mesh.vwN
+   
+   //std::cout << "[load_vwN_vtu] e mesh.vwN: " << e+1 << " " << std::endl; 
+   
+  }
+   //std::cout << "[load_vwN_vtu] e mesh.vwN finished " << " " << std::endl; 
 }
 
 /// @brief Store a surface mesh read from a VTK .vtp file into a Face object.

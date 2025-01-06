@@ -234,6 +234,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
   bool pstEq = com_mod.pstEq;
 
   int eNoN = lM.eNoN;
+  int nvw = lM.nvw;
   int nFn = lM.nFn;
   if (nFn == 0) {
     nFn = 1;
@@ -250,7 +251,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
   // STRUCT: dof = nsd
 
   Vector<int> ptr(eNoN);
-  Vector<double> pSl(nsymd), ya_l(eNoN), N(eNoN);
+  Vector<double> pSl(nsymd), ya_l(eNoN), N(eNoN), vwN(nvw);
   Array<double> xl(nsd,eNoN), al(tDof,eNoN), yl(tDof,eNoN), dl(tDof,eNoN), 
                 bfl(nsd,eNoN), fN(nsd,nFn), pS0l(nsymd,eNoN), Nx(nsd,eNoN), lR(dof,eNoN);
   Array3<double> lK(dof*dof,eNoN,eNoN);
@@ -298,6 +299,13 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
         }
       }
 
+
+      if (lM.vwN.size() != 0) {
+        for (int ivn = 0; ivn < nvw; ivn++) {
+            vwN(ivn) = lM.vwN(ivn,e);
+        }
+      }
+
       if (pS0.size() != 0) { 
         pS0l.set_col(a, pS0.col(Ac));
       }
@@ -328,7 +336,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
       pSl = 0.0;
 
       if (nsd == 3) {
-        struct_3d_carray(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
+        struct_3d_carray(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK, nvw, vwN);
         //struct_3d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
 
 #if 0
@@ -342,7 +350,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
 #endif
 
       } else if (nsd == 2) {
-        struct_2d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
+        struct_2d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK, nvw, vwN);
       }
 
       // Prestress
@@ -366,7 +374,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
 void struct_2d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, const double w, 
     const Vector<double>& N, const Array<double>& Nx, const Array<double>& al, const Array<double>& yl, 
     const Array<double>& dl, const Array<double>& bfl, const Array<double>& fN, const Array<double>& pS0l, 
-    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK) 
+    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK, const int nvw, Vector<double>& vwN) 
 {
   using namespace consts;
   using namespace mat_fun;
@@ -460,7 +468,7 @@ void struct_2d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
   Svis = 2.0 * mu * Jac * mat_mul(Fi, Svis);
 
   Array<double> S(2,2), Dm(3,3);
-  mat_models::get_pk2cc(com_mod, cep_mod, dmn, F, nFn, fN, ya_g, S, Dm);
+  mat_models::get_pk2cc(com_mod, cep_mod, dmn, F, nFn, fN, ya_g, S, Dm, nvw, vwN);
 
   // Elastic + Viscous stresses
   S = S + Svis;
@@ -593,7 +601,7 @@ void struct_2d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
 void struct_3d_carray(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, const double w, 
     const Vector<double>& N, const Array<double>& Nx, const Array<double>& al, const Array<double>& yl, 
     const Array<double>& dl, const Array<double>& bfl, const Array<double>& fN, const Array<double>& pS0l, 
-    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK) 
+    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK, int nvw, Vector<double>& vwN) 
 {
   using namespace consts;
   using namespace mat_fun;
@@ -733,7 +741,7 @@ void struct_3d_carray(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const in
   double S[3][3]; 
   double Dm[6][6]; 
 
-  mat_models_carray::get_pk2cc<3>(com_mod, cep_mod, dmn, F, nFn, fN, ya_g, S, Dm);
+  mat_models_carray::get_pk2cc<3>(com_mod, cep_mod, dmn, F, nFn, fN, ya_g, S, Dm, nvw, vwN);
 
   // Elastic + Viscous stresses
   for (int i = 0; i < 3; i++) {
@@ -985,7 +993,7 @@ void struct_3d_carray(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const in
 void struct_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, const double w, 
     const Vector<double>& N, const Array<double>& Nx, const Array<double>& al, const Array<double>& yl, 
     const Array<double>& dl, const Array<double>& bfl, const Array<double>& fN, const Array<double>& pS0l, 
-    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK) 
+    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK, const int nvw, Vector<double>& vwN) 
 {
   using namespace consts;
   using namespace mat_fun;
@@ -1126,7 +1134,7 @@ void struct_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
   // Voigt notationa (Dm)
   //
   Array<double> S(3,3), Dm(6,6); 
-  mat_models::get_pk2cc(com_mod, cep_mod, dmn, F, nFn, fN, ya_g, S, Dm);
+  mat_models::get_pk2cc(com_mod, cep_mod, dmn, F, nFn, fN, ya_g, S, Dm, nvw, vwN);
 
   // Elastic + Viscous stresses
   S = S + Svis;

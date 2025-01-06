@@ -381,6 +381,7 @@ void global_eq_assem(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const 
       throw std::runtime_error("[global_eq_assem] Undefined physics selection for assembly");
   } 
 
+
   #ifdef debug_global_eq_assem
   double elapsed_time = com_mod.timer.get_elapsed_time();
   dmsg << "elapsed_time: " << elapsed_time;

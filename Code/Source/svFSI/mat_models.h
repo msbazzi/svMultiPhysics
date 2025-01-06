@@ -48,10 +48,10 @@ void cc_to_voigt(const int nsd, const Tensor4<double>& CC, Array<double>& Dm);
 void get_fib_stress(const ComMod& com_mod, const CepMod& cep_mod, const fibStrsType& Tfl, double& g);
 
 void get_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Array<double>& F, const int nfd,
-    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm);
+    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm, int nvw,  Vector<double>& vwN);
 
 void get_pk2cc_dev(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Array<double>& F, const int nfd,
-    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm, double& Ja);
+    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm, double& Ja, const int nvw,  Vector<double> vwN);
 
 void get_pk2cc_shlc(const ComMod& com_mod, const dmnType& lDmn, const int nfd, const Array<double>& fNa0,
     const Array<double>& gg_0, const Array<double>& gg_x, double& g33, Vector<double>& Sml, Array<double>& Dml);

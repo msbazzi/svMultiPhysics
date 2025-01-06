@@ -798,6 +798,7 @@ void initialize(Simulation* simulation, Vector<double>& timeP)
   int iEq = 0;
   output::output_result(simulation, com_mod.timeP, co, iEq);
 
+
   std::fill(com_mod.rmsh.flag.begin(), com_mod.rmsh.flag.end(), false);
   com_mod.resetSim = false;
 }

@@ -503,6 +503,24 @@ class StVenantKirchhoffParameters : public ParameterLists
     bool value_set = false;
 };
 
+class StIsoAnisoParameters : public ParameterLists
+{ 
+  public:
+    StIsoAnisoParameters();
+    void set_values(tinyxml2::XMLElement* modl_params);
+    void print_parameters();
+    bool value_set = false;
+};
+class StIsoMixParameters : public ParameterLists
+{ 
+  public:
+    StIsoMixParameters();
+    void set_values(tinyxml2::XMLElement* modl_params);
+    void print_parameters();
+    bool value_set = false;
+};
+
+
 /// @brief The ConstitutiveModelParameters class store parameters
 /// for various constitutive models.
 class ConstitutiveModelParameters : public ParameterLists
@@ -521,6 +539,8 @@ class ConstitutiveModelParameters : public ParameterLists
     static const std::string LEE_SACKS;
     static const std::string NEOHOOKEAN_MODEL;
     static const std::string STVENANT_KIRCHHOFF_MODEL;
+    static const std::string STISO_ANISO_MODEL;
+    static const std::string STISO_MIX_MODEL;
     static const std::map<std::string, std::string> constitutive_model_types;
 
     // Constitutive model type.
@@ -533,6 +553,8 @@ class ConstitutiveModelParameters : public ParameterLists
     MooneyRivlinParameters mooney_rivlin;
     NeoHookeanParameters neo_hookean;
     StVenantKirchhoffParameters stvenant_kirchhoff;
+    StIsoAnisoParameters stIso_aniso;
+    StIsoMixParameters stIso_mix;
 
     bool value_set = false;
 };
@@ -701,6 +723,8 @@ class BoundaryConditionParameters : public ParameterLists
     Parameter<double> penalty_parameter_normal;
     Parameter<double> penalty_parameter_tangential;
     Parameter<std::string> prestress_file_path;
+    //Parameter<std::string> variable_wall_properties_file_path;
+    //Parameter<std::string> number_variable_wall_properties;
     Parameter<std::string> profile;
     Parameter<bool> ramp_function;
 
@@ -1348,6 +1372,8 @@ class MeshParameters : public ParameterLists
     Parameter<std::string> mesh_file_path;
     Parameter<double> mesh_scale_factor;
     Parameter<std::string> prestress_file_path;
+    Parameter<std::string> variable_wall_properties_file_path;
+    Parameter<int> number_variable_wall_properties;
 
     Parameter<bool> set_mesh_as_fibers;
     Parameter<bool> set_mesh_as_shell;

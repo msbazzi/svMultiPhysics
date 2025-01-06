@@ -174,4 +174,28 @@ SeMaterialPropertiesMapType set_material_props = {
 
 } },
 
+//---------------------------//
+//       stIso_Aniso         //
+//---------------------------//
+//
+{consts::ConstitutiveModelType::stIso_aniso, [](DomainParameters* domain_params, double mu, double kap, double lam,
+    dmnType& lDmn) -> void
+{
+  std::cout << "setting the material properties for Aniso" << std::endl;
+  lDmn.stM.isoType = consts::ConstitutiveModelType::stIso_aniso;
+  auto& params = domain_params->constitutive_model.stIso_aniso;
+
+} },
+
+{consts::ConstitutiveModelType::stIso_mix, [](DomainParameters* domain_params, double mu, double kap, double lam,
+    dmnType& lDmn) -> void
+{
+  std::cout << "setting the material properties for mix" << std::endl;
+  lDmn.stM.C10 = 0.5 * mu;
+  lDmn.stM.isoType = consts::ConstitutiveModelType::stIso_mix;
+  auto& params = domain_params->constitutive_model.stIso_mix;
+
+} },
+
+
 };

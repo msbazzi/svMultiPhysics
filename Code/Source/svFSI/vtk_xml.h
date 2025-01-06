@@ -49,6 +49,8 @@ void read_vtu(const std::string& file_name, mshType& mesh);
 
 void read_precomputed_solution_vtu(const std::string& file_name, const std::string& field_name, mshType& mesh);
 
+void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, const int idx, mshType& mesh, Simulation* simulation);
+
 void read_vtu_pdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, const int idx, mshType& mesh);
 
 void read_vtus(Simulation* simulation, Array<double>& lA, Array<double>& lY, Array<double>& lD, const std::string& fName);

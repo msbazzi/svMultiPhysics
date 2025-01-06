@@ -77,6 +77,12 @@ const std::map<std::string,ConstitutiveModelType> constitutive_model_name_to_typ
   {"neoHookean", ConstitutiveModelType::stIso_nHook},
   {"neoHookeanSimo91", ConstitutiveModelType::stIso_nHook},
 
+  {"Aniso", ConstitutiveModelType::stIso_aniso},
+  {"aniso", ConstitutiveModelType::stIso_aniso},
+
+  {"Mix", ConstitutiveModelType::stIso_mix},
+  {"mix", ConstitutiveModelType::stIso_mix},
+
   {"MR", ConstitutiveModelType::stIso_MR}, 
   {"Mooney-Rivlin", ConstitutiveModelType::stIso_MR},
 

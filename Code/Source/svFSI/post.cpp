@@ -35,7 +35,9 @@
 #include "fs.h"
 #include "initialize.h"
 #include "mat_fun.h"
+#include "mat_fun_carray.h"
 #include "mat_models.h"
+#include "mat_models_carray.h"
 #include "nn.h"
 #include "shells.h"
 #include "utils.h"
@@ -63,6 +65,7 @@ void all_post(Simulation* simulation, Array<double>& res, const Array<double>& l
   for (int iM = 0; iM < com_mod.nMsh; iM++) {
     auto& msh = com_mod.msh[iM];
     Array<double> tmpV(maxNSD,msh.nNo);
+    //Array<int> tmpVe(msh.nEl);
 
     if (outGrp == OutputType::outGrp_WSS ||  outGrp == OutputType::outGrp_trac) {
       bpost(simulation, msh,  tmpV, lY, lD, outGrp);
@@ -146,6 +149,7 @@ void bpost(Simulation* simulation, const mshType& lM, Array<double>& res, const 
 
   const int tnNo = com_mod.tnNo;
   const int nsd = com_mod.nsd;
+  const int nvw = lM.nvw;
 
   Vector<double> sA(tnNo); 
   Array<double> sF(maxNSD,tnNo); 
@@ -155,7 +159,7 @@ void bpost(Simulation* simulation, const mshType& lM, Array<double>& res, const 
   Array<double> lnV(nsd,eNoN); 
   Vector<double> N(eNoN); 
   Array<double> Nx(nsd,eNoN);
-
+  
   // First creating the norm field
   //
   for (int iFa = 0; iFa < lM.nFa; iFa++) {
@@ -454,6 +458,7 @@ void div_post(Simulation* simulation, const mshType& lM, Array<double>& res, con
         Array<double> vx(nsd,nsd);
         auto F = mat_fun::mat_id(nsd);
         Vector<double> VxFi(nsd);
+        //std::cout << "inside div_post " << std::endl;
 
         if (nsd == 3) {
           for (int a = 0; a < eNoN; a++) {
@@ -1707,6 +1712,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
 
   int tnNo = com_mod.tnNo;
   int nsd = com_mod.nsd;
+  int nvw = lM.nvw;
   int tDof = com_mod.tDof;
   int nsymd = com_mod.nsymd;
 
@@ -1729,6 +1735,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
   Vector<double> resl(m); 
   Array<double> Nx(nsd,fs.eNoN); 
   Vector<double> N(fs.eNoN);
+  Vector<double> vwN(nvw) ;
 
   double ya = 0.0;
 
@@ -1765,6 +1772,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
     }
 
     fN = 0.0;
+    vwN = 0.0;
 
     if (lM.fN.size() != 0) {
       for (int l = 0; l < nFn; l++) {
@@ -1773,6 +1781,14 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
         }
       }
     }
+    
+    
+    if (lM.vwN.size() != 0) {
+      for (int l = 0; l < nvw; l++) {
+          vwN(l) = lM.vwN(l,e);
+      }
+    }
+
 
     dl = 0.0;
     yl = 0.0;
@@ -1899,8 +1915,8 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
         case OutputType::outGrp_stress:
         case OutputType::outGrp_cauchy: 
         case OutputType::outGrp_mises:
-          Array<double> sigma(nsd,nsd);
-          Array<double> S(nsd,nsd);
+        Array<double> sigma(nsd,nsd);
+        Array<double> S(nsd,nsd);
 
           if (cPhys == EquationType::phys_lElas) {
             if (nsd == 3) {
@@ -1925,6 +1941,8 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
             }
 
           } else if (cPhys == EquationType::phys_ustruct) {
+
+            //std::cout << "inside t_post " << std::endl;
             double p = 0.0;
             for (int a = 0; a < fs.eNoN; a++) {
               p = p + N(a)*yl(k+1,a);
@@ -1934,7 +1952,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
             Array<double> Dm(nsymd,nsymd);
             double Ja;
             
-            mat_models::get_pk2cc_dev(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya, S, Dm, Ja);
+            mat_models::get_pk2cc_dev(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya, S, Dm, Ja, nvw, vwN);
 
             auto C = mat_mul(transpose(F), F);
             S = S + p*mat_inv(C, nsd);
@@ -1948,7 +1966,33 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
 
           } else if (cPhys == EquationType::phys_struct) {
             Array<double> Dm(nsymd,nsymd);
-            mat_models::get_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya, S, Dm);
+            double Stemp[3][3];
+            double Ftemp[3][3];
+            double Dmtemp[6][6];
+
+            for (int i = 0; i < nsd; i++) {
+              for (int j = 0; j < nsd; j++) {
+                Ftemp[i][j] = F(i,j);
+              }
+            }
+
+            //mat_models::get_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya, S, Dm, nvw, vwN);
+            
+            mat_models_carray::get_pk2cc<3>(com_mod, cep_mod, eq.dmn[cDmn], Ftemp, nFn, fN, ya, Stemp, Dmtemp, nvw, vwN);
+
+
+            for (int i = 0; i < nsd; i++) {
+              for (int j = 0; j < nsd; j++) {
+                S(i,j) = Stemp[i][j];
+              }
+            }
+
+            for (int i = 0; i < nsd; i++) {
+              for (int j = 0; j < nsd; j++) {
+                Dm(i,j) = Dmtemp[i][j];
+              }
+            }
+
 
             auto P1 = mat_mul(F, S);
             sigma = mat_mul(P1, transpose(F));
@@ -1982,10 +2026,12 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
               resl(3) = sigma(0,1);
               resl(4) = sigma(1,2);
               resl(5) = sigma(2,0);
+              sE(e) = sE(e)+w*(sigma(0,0)+sigma(1,1)+sigma(2,2));
             } else { 
               resl(0) = sigma(0,0);
               resl(1) = sigma(1,1);
               resl(2) = sigma(0,1);
+              sE(e) = sE(e)+w*(sigma(0,0)+sigma(1,1));
             }
 
           // Von Mises stress

@@ -199,7 +199,7 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
 {
   using namespace consts;
 
-  #define n_debug_construct_usolid
+  #define u_debug_construct_usolid
   #ifdef debug_construct_usolid
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
@@ -222,6 +222,8 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
 
   int eNoN = lM.eNoN;
   int nFn = lM.nFn;
+  int nvw = lM.nvw;
+
   if (nFn == 0) {
     nFn = 1;
   }
@@ -241,7 +243,7 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
 
   // USTRUCT: dof = nsd+1
   Vector<int> ptr(eNoN);
-  Vector<double> pSl(nsymd), ya_l(eNoN), N(eNoN);
+  Vector<double> pSl(nsymd), ya_l(eNoN), N(eNoN), vwN(nvw);
   Array<double> xl(nsd,eNoN), al(tDof,eNoN), yl(tDof,eNoN), dl(tDof,eNoN),
                 bfl(nsd,eNoN), fN(nsd,nFn), pS0l(nsymd,eNoN), Nx(nsd,eNoN), lR(dof,eNoN);
   Array3<double> lK(dof*dof,eNoN,eNoN), lKd(dof*nsd,eNoN,eNoN);
@@ -257,6 +259,7 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
     // Create local copies
     fN  = 0.0;
     ya_l = 0.0;
+    vwN = 0.0;
 
     for (int a = 0; a < eNoN; a++) {
       int Ac = lM.IEN(a,e);
@@ -280,6 +283,16 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
           }
         }
       }
+
+      //if (lM.vwN.size() != 0) {
+      
+        for (int ivn = 0; ivn < nvw; ivn++) {
+          vwN(ivn) = lM.vwN(ivn,e);
+        }
+        if (e == 0) {
+          //std::cout << "vwN: " << vwN << std::endl;
+        }
+      //}
 
       if (cem.cpld) {
         ya_l(a) = cem.Ya(Ac);
@@ -328,17 +341,17 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
       if (nsd == 3) {
         auto N0 = fs[0].N.col(g);
         auto N1 = fs[1].N.col(g);
-        ustruct_3d_m(com_mod, cep_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al, yl, dl, bfl, fN, ya_l, lR, lK, lKd);
+        ustruct_3d_m(com_mod, cep_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al, yl, dl, bfl, fN, ya_l, lR, lK, lKd, nvw, vwN);
 
       } else if (nsd == 2) {
         auto N0 = fs[0].N.col(g);
         auto N1 = fs[1].N.col(g);
-        ustruct_2d_m(com_mod, cep_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al, yl, dl, bfl, fN, ya_l, lR, lK, lKd);
+        ustruct_2d_m(com_mod, cep_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al, yl, dl, bfl, fN, ya_l, lR, lK, lKd, nvw, vwN);
       }
 
-    } // for g = 0 to fs[0].nG
-
-    // Set function spaces for velocity/displacement and pressure.
+    }
+     // for g = 0 to fs[0].nG
+       // Set function spaces for velocity/displacement and pressure.
     fs::get_thood_fs(com_mod, fs, lM, vmsStab, 2);
 
     // Gauss integration 2
@@ -380,7 +393,7 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
     ustruct_do_assem(com_mod, eNoN, ptr, lKd, lK, lR);
 
   } // for e = 0 to lM.nEl
-
+ 
 }
 
 int get_col_ptr(ComMod& com_mod, const int rowN, const int colN)
@@ -887,7 +900,7 @@ void ustruct_2d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
     const int nFn, const double w, const double Je, const Vector<double>& Nw,  const Vector<double>& Nq, 
     const Array<double>& Nwx, const Array<double>& al, const Array<double>& yl, const Array<double>& dl, 
     const Array<double>& bfl, const Array<double>& fN, const Vector<double>& ya_l, Array<double>& lR, 
-    Array3<double>& lK, Array3<double>& lKd)
+    Array3<double>& lK, Array3<double>& lKd, const int nvw,  Vector<double>& vwN)
 {
   using namespace consts;
   using namespace mat_fun;
@@ -977,8 +990,9 @@ void ustruct_2d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
   // isochoric elasticity tensor in Voigt notation (Dm)
   Array<double> Siso(2,2), Dm(3,3);
   double Ja = 0;
-  mat_models::get_pk2cc_dev(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya_g, Siso, Dm, Ja);
 
+  mat_models::get_pk2cc_dev(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya_g, Siso, Dm, Ja, nvw, vwN);
+  //std::cout << "Siso: " << Siso << std::endl;
   // Viscous contribution
   // Velocity gradient in current configuration
   auto VxFi = mat_mul(vx, Fi);
@@ -1188,7 +1202,7 @@ void ustruct_3d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
     const int nFn, const double w, const double Je, const Vector<double>& Nw,  const Vector<double>& Nq, 
     const Array<double>& Nwx, const Array<double>& al, const Array<double>& yl, const Array<double>& dl, 
     const Array<double>& bfl, const Array<double>& fN, const Vector<double>& ya_l, Array<double>& lR, 
-    Array3<double>& lK, Array3<double>& lKd)
+    Array3<double>& lK, Array3<double>& lKd, const int nvw,  Vector<double> vwN)
 {
   using namespace consts;
   using namespace mat_fun;
@@ -1300,8 +1314,7 @@ void ustruct_3d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
   //
   Array<double> Siso(3,3), Dm(6,6);
   double Ja = 0;
-  mat_models::get_pk2cc_dev(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya_g, Siso, Dm, Ja);
-
+  mat_models::get_pk2cc_dev(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya_g, Siso, Dm, Ja, nvw, vwN);
   // Viscous contribution
   //
   // Velocity gradient in current configuration
@@ -1645,7 +1658,7 @@ void ustruct_3d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
       lK(11,a,b) = lK(11,a,b) + w*Jac*T1;
     }
   }
-
+  
 }
 
 /// @brief Replicates 'SUBROUTINE USTRUCT_DOASSEM(d, eqN, lKd, lK, lR)'
@@ -1801,7 +1814,7 @@ void ustruct_r(ComMod& com_mod, const Array<double>& Yg)
 {
   using namespace consts;
 
-  #define n_debug_ustruct_r 
+  #define U_debug_ustruct_r 
   #ifdef debug_ustruct_r 
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
@@ -1839,6 +1852,7 @@ void ustruct_r(ComMod& com_mod, const Array<double>& Yg)
   if (eq.itr > 1) {
      Rd = 0.0;
   } else {
+
     for (int a = 0; a < tnNo; a++) { 
       if (!all_fun::is_domain(com_mod, eq, a, EquationType::phys_ustruct)) {
         continue;
@@ -1846,26 +1860,30 @@ void ustruct_r(ComMod& com_mod, const Array<double>& Yg)
       for (int i = 0; i < nsd; i++) {
         Rd(i,a) = amg*Ad(i,a) - Yg(s+i,a);
       }
+
     }
-
+    //std::cout << nsd << std::endl;
     if (nsd == 3) {
+      //std::cout << "tnNo " << tnNo << std::endl;
       Array<double> KU(4,tnNo);
-
+     
       for (int a = 0; a < tnNo; a++) { 
         if (!all_fun::is_domain(com_mod, eq, a, EquationType::phys_ustruct)) {
           continue;
         }
 
-        for (int i = rowPtr(a); i <= rowPtr(a+1)-1; i++) {
-          int c = colPtr(i);
+        
 
+        for (int i = rowPtr(a); i <= rowPtr(a+1)-1; i++) {
+          
+          int c = colPtr(i);
           KU(0,a) = KU(0,a) + Kd(0 ,i)*Rd(0,c) + Kd(1 ,i)*Rd(1,c) + Kd(2 ,i)*Rd(2,c);
           KU(1,a) = KU(1,a) + Kd(3 ,i)*Rd(0,c) + Kd(4 ,i)*Rd(1,c) + Kd(5 ,i)*Rd(2,c);
           KU(2,a) = KU(2,a) + Kd(6 ,i)*Rd(0,c) + Kd(7 ,i)*Rd(1,c) + Kd(8 ,i)*Rd(2,c);
           KU(3,a) = KU(3,a) + Kd(9,i)*Rd(0,c) + Kd(10,i)*Rd(1,c) + Kd(11,i)*Rd(2,c);
         }
       }
-
+ 
       all_fun::commu(com_mod, KU);
 
       for (int a = 0; a < tnNo; a++) { 
@@ -1898,6 +1916,7 @@ void ustruct_r(ComMod& com_mod, const Array<double>& Yg)
         R(2,a) = R(2,a) - ami*KU(2,a);
       }
     }
+    //<< " final " << std::endl;
   } 
 } 
 

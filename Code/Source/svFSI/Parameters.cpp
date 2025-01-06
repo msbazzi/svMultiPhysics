@@ -379,6 +379,8 @@ BoundaryConditionParameters::BoundaryConditionParameters()
   set_parameter("Penalty_parameter_normal", 0.0, !required, penalty_parameter_normal);
   set_parameter("Penalty_parameter_tangential", 0.0, !required, penalty_parameter_tangential);
   set_parameter("Prestress_file_path", "", !required, prestress_file_path);
+  //set_parameter("Variable_wall_properties_file_path", "", !required, variable_wall_properties_file_path);
+  //set_parameter("Number_variable_wall_properties", "", !required, number_variable_wall_properties);
   set_parameter("Profile", "Flat", !required, profile);
 
   set_parameter("Ramp_function", false, !required, ramp_function);
@@ -471,6 +473,8 @@ const std::string ConstitutiveModelParameters::HOLZAPFEL_MODEL = "Holzapfel";
 const std::string ConstitutiveModelParameters::LEE_SACKS = "Lee-Sacks";
 const std::string ConstitutiveModelParameters::NEOHOOKEAN_MODEL = "neoHookean";
 const std::string ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL = "stVenantKirchhoff";
+const std::string ConstitutiveModelParameters::STISO_ANISO_MODEL = "aniso";
+const std::string ConstitutiveModelParameters::STISO_MIX_MODEL = "mix";
 
 /// @brief Supported constitutive model types and their aliases.
 const std::map<std::string, std::string> ConstitutiveModelParameters::constitutive_model_types = {
@@ -488,6 +492,12 @@ const std::map<std::string, std::string> ConstitutiveModelParameters::constituti
 
   {ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL, ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL},
   {"stVK",                                                ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL},
+  
+  {ConstitutiveModelParameters::STISO_ANISO_MODEL, ConstitutiveModelParameters::STISO_ANISO_MODEL},
+  {"aniso",                                        ConstitutiveModelParameters::STISO_ANISO_MODEL},
+
+  {ConstitutiveModelParameters::STISO_MIX_MODEL, ConstitutiveModelParameters::STISO_MIX_MODEL},
+  {"mix",                                        ConstitutiveModelParameters::STISO_MIX_MODEL},
 }; 
 
 /// @brief Define a map to set the parameters for each constitutive model.
@@ -502,6 +512,8 @@ SetConstitutiveModelParamMapType SetConstitutiveModelParamMap = {
   {ConstitutiveModelParameters::LEE_SACKS, [](CmpType cp, CmpXmlType params) -> void {cp->lee_sacks.set_values(params);}},
   {ConstitutiveModelParameters::NEOHOOKEAN_MODEL, [](CmpType cp, CmpXmlType params) -> void {cp->neo_hookean.set_values(params);}},
   {ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL, [](CmpType cp, CmpXmlType params) -> void {cp->stvenant_kirchhoff.set_values(params);}},
+  {ConstitutiveModelParameters::STISO_ANISO_MODEL, [](CmpType cp, CmpXmlType params) -> void {cp->stIso_aniso.set_values(params);}},
+  {ConstitutiveModelParameters::STISO_MIX_MODEL, [](CmpType cp, CmpXmlType params) -> void {cp->stIso_mix.set_values(params);}}
 };
 
 /// @brief Define a map to print parameters for each constitutive model.
@@ -513,6 +525,8 @@ PrintConstitutiveModelParamMapType PrintConstitutiveModelParamMap = {
   {ConstitutiveModelParameters::LEE_SACKS, [](CmpType cp) -> void {cp->lee_sacks.print_parameters();}},
   {ConstitutiveModelParameters::NEOHOOKEAN_MODEL, [](CmpType cp) -> void {cp->neo_hookean.print_parameters();}},
   {ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL, [](CmpType cp) -> void {cp->stvenant_kirchhoff.print_parameters();}},
+  {ConstitutiveModelParameters::STISO_ANISO_MODEL, [](CmpType cp) -> void {cp->stIso_aniso.print_parameters();}},
+  {ConstitutiveModelParameters::STISO_MIX_MODEL, [](CmpType cp) -> void {cp->stIso_mix.print_parameters();}}
 };
 
 
@@ -714,6 +728,7 @@ void NeoHookeanParameters::print_parameters()
 {
 }
 
+
 /// @brief There are no parameters associated with a StVenantKirchhoff model.
 StVenantKirchhoffParameters::StVenantKirchhoffParameters()
 {
@@ -726,6 +741,36 @@ void StVenantKirchhoffParameters::set_values(tinyxml2::XMLElement* con_params)
 }
 
 void StVenantKirchhoffParameters::print_parameters()
+{
+}
+
+// @brief There are no parameters associated with aniso model.
+StIsoAnisoParameters::StIsoAnisoParameters()
+{
+  value_set = true;
+}
+
+void StIsoAnisoParameters::set_values(tinyxml2::XMLElement* con_params)
+{
+  value_set = true;
+}
+
+void StIsoAnisoParameters::print_parameters()
+{
+}
+
+// @brief There are no parameters associated with mix model.
+StIsoMixParameters::StIsoMixParameters()
+{
+  value_set = true;
+}
+
+void StIsoMixParameters::set_values(tinyxml2::XMLElement* con_params)
+{
+  value_set = true;
+}
+
+void StIsoMixParameters::print_parameters()
 {
 }
 
@@ -2079,6 +2124,8 @@ MeshParameters::MeshParameters()
   set_parameter("Mesh_file_path", "", !required, mesh_file_path);
   set_parameter("Mesh_scale_factor", 1.0, !required, mesh_scale_factor);
   set_parameter("Prestress_file_path", "", !required, prestress_file_path);
+  set_parameter("Variable_wall_properties_file_path", "", !required, variable_wall_properties_file_path);
+  set_parameter("Number_variable_wall_properties", "", !required, number_variable_wall_properties);
 
   set_parameter("Initial_displacements_file_path", "", !required, initial_displacements_file_path);
   set_parameter("Initial_pressures_file_path", "", !required, initial_pressures_file_path);

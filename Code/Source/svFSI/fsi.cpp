@@ -61,7 +61,12 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
   int eNoN = lM.eNoN;
   int nFn  = lM.nFn;
+  int nvw  = lM.nvw; 
+  int nvwa = 1;
+
+  if (nvw != 0) nvwa = nvw/lM.nG;
   if (nFn == 0) nFn = 1;
+  if (nvw == 0) nvw = 1;
 
   bool  vmsStab = false;
   if (lM.nFs == 1) {
@@ -91,7 +96,7 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
   Array3<double> lK(dof*dof,eNoN,eNoN), lKd(dof*nsd,eNoN,eNoN);
   Array<double> xl(nsd,eNoN), al(tDof,eNoN), yl(tDof,eNoN), dl(tDof,eNoN), bfl(nsd,eNoN), 
       fN(nsd,nFn), pS0l(nsymd,eNoN), lR(dof,eNoN);
-  Vector<double> pSl(nsymd), ya_l(eNoN);
+  Vector<double> pSl(nsymd), ya_l(eNoN), vwN(nvw),vwNa(nvwa);
 
   std::array<fsType,2> fs_1;
   fs::get_thood_fs(com_mod, fs_1, lM, vmsStab, 1);
@@ -121,6 +126,8 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
     fN  = 0.0;
     pS0l = 0.0;
     ya_l = 0.0;
+    vwN = 0.0;
+    vwNa = 0.0;
 
     for (int a = 0; a < eNoN; a++) {
       int Ac = lM.IEN(a,e);
@@ -143,6 +150,13 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
           }
         }
       }
+
+      if (lM.vwN.size() != 0) {
+        for (int i = 0; i < nvw; i++) {
+          vwN(i) = lM.vwN(i,e);
+        }
+      }
+
 
       if (pS0.size() != 0) {
         pS0l.set_col(a, pS0.col(Ac));
@@ -220,8 +234,12 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
           case Equation_struct: {
             auto N0 = fs_1[0].N.col(g);
-            struct_ns::struct_3d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
+          //  if (eq.dmn[cDmn].stM.isoType == ConstitutiveModelType::stIso_aniso)
+            struct_ns::struct_3d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK, nvw, vwN);
+           // else 
+            //struct_ns::struct_3d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
           } break;
+        
           case Equation_lElas:
             throw std::runtime_error("[construct_fsi] LELAS3D not implemented");
             //CALL LELAS3D(fs(1).eNoN, w, fs(1).N(:,g), Nwx, al, dl, bfl, pS0l, pSl, lR, lK)
@@ -249,7 +267,7 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const Ar
 
           case Equation_struct: {
             auto N0 = fs_1[0].N.col(g);
-            struct_ns::struct_2d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
+            struct_ns::struct_2d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0, Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK, nvw, vwN);
           } break;
 
           case Equation_ustruct:
