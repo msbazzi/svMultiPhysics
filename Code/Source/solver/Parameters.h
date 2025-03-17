@@ -494,6 +494,19 @@ class NeoHookeanParameters : public ParameterLists
     bool value_set = false;
 };
 
+class SokolisParameters : public ParameterLists
+{
+  public:
+    SokolisParameters();
+    bool defined() const { return value_set; };
+    void set_values(tinyxml2::XMLElement* con_model_params);
+    void print_parameters();
+
+    Parameter<double> a4f;
+    Parameter<double> b4f;
+    bool value_set = false;
+};
+
 class StVenantKirchhoffParameters : public ParameterLists
 { 
   public:
@@ -523,6 +536,7 @@ class ConstitutiveModelParameters : public ParameterLists
     static const std::string LEE_SACKS;
     static const std::string NEOHOOKEAN_MODEL;
     static const std::string STVENANT_KIRCHHOFF_MODEL;
+    static const std::string SOKOLIS_MODEL;
     static const std::map<std::string, std::string> constitutive_model_types;
 
     // Constitutive model type.
@@ -535,6 +549,7 @@ class ConstitutiveModelParameters : public ParameterLists
     MooneyRivlinParameters mooney_rivlin;
     NeoHookeanParameters neo_hookean;
     StVenantKirchhoffParameters stvenant_kirchhoff;
+    SokolisParameters sokolis;
 
     bool value_set = false;
 };

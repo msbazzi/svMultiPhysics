@@ -122,6 +122,9 @@ const std::map<std::string,ConstitutiveModelType> constitutive_model_name_to_typ
 
   {"HGO", ConstitutiveModelType::stIso_HGO}, 
 
+  {"Sokolis", ConstitutiveModelType::stIso_Sokolis}, 
+  {"sokolis", ConstitutiveModelType::stIso_Sokolis}, 
+
   {"Guccione", ConstitutiveModelType::stIso_Gucci},
   {"Gucci", ConstitutiveModelType::stIso_Gucci},
 

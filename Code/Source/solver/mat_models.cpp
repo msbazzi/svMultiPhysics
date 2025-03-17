@@ -432,6 +432,45 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
          dyadic_product<nsd>(Ci, Ci) ) + 2.0*g2*fourth_order_identity<nsd>();
     } break;
 
+    // Sokolis DP, Sassani S, Kritharis EP, Tsangaris S (2011). Med Biol Eng Comput 49:867–879
+    case ConstitutiveModelType::stIso_Sokolis: {
+
+      // Compute fictious stress and elasticity tensor
+      Matrix<nsd> S_bar = 2.0 * stM.C10 * Idm;
+      Tensor<nsd> CC_bar; 
+      CC_bar.setZero();
+
+      // Add fiber reinforcement/active stress
+      S_bar += Tfa * (fl.col(0) * fl.col(0).transpose());
+
+      //First material property of the alpha-th anisotropic family
+      double vaff = stM.aff;
+
+      //second material property of the alpha-th anisotropic family
+      double vbff = stM.bff;
+      Matrix<nsd> Hff = fl.col(0) * fl.col(0).transpose();
+      
+
+      double Inv4 = J2d * (fl.col(0).dot(C * fl.col(0)));
+
+      double Eff = Inv4-1.0;
+
+      double g1 = vaff*Eff*exp(vbff*Eff*Eff);
+
+      S_bar = 2*g1*Hff;
+
+      g1 = vaff*(1.0 +2.0*vbff*Eff*Eff)*exp(vbff*Eff*Eff);
+
+      g1=4.0*J4d*g1;
+
+      CC_bar = g1*dyadic_product<nsd>(Hff, Hff);
+      S_bar += g1*Hff;
+      // Compute and add isochoric stress and elasticity tensor
+      auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
+      S += S_iso;
+      CC += CC_iso;
+
+    } break;
     // NeoHookean model
     case ConstitutiveModelType::stIso_nHook: {
 

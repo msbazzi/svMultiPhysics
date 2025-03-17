@@ -194,4 +194,16 @@ SeMaterialPropertiesMapType set_material_props = {
 
 } },
 
+//---------------------------//
+//       stIso_Sokolis            //
+//---------------------------//
+//
+{consts::ConstitutiveModelType::stIso_Sokolis, [](DomainParameters* domain_params, double mu, double kap, double lam,
+  dmnType& lDmn) -> void
+{
+lDmn.stM.isoType = consts::ConstitutiveModelType::stIso_Sokolis;
+auto& params = domain_params->constitutive_model.sokolis;
+lDmn.stM.C10 = 0.5 * mu;
+} },
+
 };

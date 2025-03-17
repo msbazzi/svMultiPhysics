@@ -485,6 +485,7 @@ const std::string ConstitutiveModelParameters::HOLZAPFEL_OGDEN_MODEL = "Holzapfe
 const std::string ConstitutiveModelParameters::HOLZAPFEL_OGDEN_MA_MODEL = "HolzapfelOgden-ModifiedAnisotropy";
 const std::string ConstitutiveModelParameters::LEE_SACKS = "Lee-Sacks";
 const std::string ConstitutiveModelParameters::NEOHOOKEAN_MODEL = "neoHookean";
+const std::string ConstitutiveModelParameters::SOKOLIS_MODEL = "sokolis";
 const std::string ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL = "stVenantKirchhoff";
 
 /// @brief Supported constitutive model types and their aliases.
@@ -503,6 +504,9 @@ const std::map<std::string, std::string> ConstitutiveModelParameters::constituti
   {ConstitutiveModelParameters::NEOHOOKEAN_MODEL, ConstitutiveModelParameters::NEOHOOKEAN_MODEL},
   {"nHK", ConstitutiveModelParameters::NEOHOOKEAN_MODEL},
 
+  {ConstitutiveModelParameters::SOKOLIS_MODEL, ConstitutiveModelParameters::SOKOLIS_MODEL},
+  {"Sokolis", ConstitutiveModelParameters::SOKOLIS_MODEL},
+
   {ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL, ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL},
   {"stVK",                                                ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL},
 }; 
@@ -520,6 +524,7 @@ SetConstitutiveModelParamMapType SetConstitutiveModelParamMap = {
   {ConstitutiveModelParameters::LEE_SACKS, [](CmpType cp, CmpXmlType params) -> void {cp->lee_sacks.set_values(params);}},
   {ConstitutiveModelParameters::NEOHOOKEAN_MODEL, [](CmpType cp, CmpXmlType params) -> void {cp->neo_hookean.set_values(params);}},
   {ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL, [](CmpType cp, CmpXmlType params) -> void {cp->stvenant_kirchhoff.set_values(params);}},
+  {ConstitutiveModelParameters::SOKOLIS_MODEL, [](CmpType cp, CmpXmlType params) -> void {cp->neo_hookean.set_values(params);}},
 };
 
 /// @brief Define a map to print parameters for each constitutive model.
@@ -533,6 +538,7 @@ PrintConstitutiveModelParamMapType PrintConstitutiveModelParamMap = {
   {ConstitutiveModelParameters::LEE_SACKS, [](CmpType cp) -> void {cp->lee_sacks.print_parameters();}},
   {ConstitutiveModelParameters::NEOHOOKEAN_MODEL, [](CmpType cp) -> void {cp->neo_hookean.print_parameters();}},
   {ConstitutiveModelParameters::STVENANT_KIRCHHOFF_MODEL, [](CmpType cp) -> void {cp->stvenant_kirchhoff.print_parameters();}},
+  {ConstitutiveModelParameters::SOKOLIS_MODEL, [](CmpType cp) -> void {cp->sokolis.print_parameters();}},
 };
 
 
@@ -731,6 +737,20 @@ void NeoHookeanParameters::set_values(tinyxml2::XMLElement* con_params)
 }
 
 void NeoHookeanParameters::print_parameters()
+{
+}
+
+/// @brief There are no parameters associated with a Neohookean model.
+SokolisParameters::SokolisParameters()
+{
+}
+
+void SokolisParameters::set_values(tinyxml2::XMLElement* con_params)
+{
+  value_set = true;
+}
+
+void SokolisParameters::print_parameters()
 {
 }
 

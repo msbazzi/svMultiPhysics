@@ -208,6 +208,7 @@ enum class ConstitutiveModelType
   stIso_HO = 608,
   stIso_HO_ma = 610,
   stIso_LS = 611,
+  stIso_Sokolis = 612,
   stVol_NA = 650,
   stVol_Quad = 651, 
   stVol_ST91 = 652, 
