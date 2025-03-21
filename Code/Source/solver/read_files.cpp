@@ -165,7 +165,6 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
 
   } else if (std::set<std::string>{"Traction", "Trac"}.count(bc_type)) {
     lBc.bType = utils::ibset(lBc.bType, enum_int(BoundaryConditionType::bType_trac)); 
-
     if (bc_params->traction_values_file_path.defined()) { 
       int iM = lBc.iM;
       int iFa = lBc.iFa;
@@ -219,6 +218,7 @@ void read_bc(Simulation* simulation, EquationParameters* eq_params, eqType& lEq,
   auto effective_direction = bc_params->effective_direction();
   for (int i = 0; i <  effective_direction.size(); i++) {
     lBc.eDrn[i] = effective_direction[i];
+    std::cout << "eDrn[" << i << "] = " << lBc.eDrn[i] << std::endl;
   }
 
   auto ctmp = bc_params->time_dependence.value();
