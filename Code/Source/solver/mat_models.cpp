@@ -450,7 +450,6 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
       double vbff = stM.bff;
       Matrix<nsd> Hff = fl.col(0) * fl.col(0).transpose();
       
-
       double Inv4 = J2d * (fl.col(0).dot(C * fl.col(0)));
 
       double Eff = Inv4-1.0;
