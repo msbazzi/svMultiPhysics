@@ -371,6 +371,13 @@ class stModelType
     double afs = 0.0;
     double bfs = 0.0;
 
+
+    // Sokolis model(btt, bzz, btz, bzt, bff)
+    double btt = 0.0;
+    double bzz = 0.0;
+    double bzt = 0.0;
+    double btz = 0.0;
+
     // Collagen fiber dispersion parameter (Holzapfel model)
     double kap = 0.0;
 

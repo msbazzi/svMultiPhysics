@@ -436,38 +436,60 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
     case ConstitutiveModelType::stIso_Sokolis: {
 
       // Compute fictious stress and elasticity tensor
-      Matrix<nsd> S_bar = 2.0 * stM.C10 * Idm;
+      Matrix<nsd> S_bar ;
       Tensor<nsd> CC_bar; 
       CC_bar.setZero();
+      S_bar.setZero();
 
-      // Add fiber reinforcement/active stress
-      S_bar += Tfa * (fl.col(0) * fl.col(0).transpose());
+      // Quadratic part of the strain energy density
+      
+      // Construct local orthogonal coordinate system
+      Matrix<nsd> Rm;
+      Rm.col(1) = fl.col(0); // circunferential direction 
+      Rm.col(2) = fl.col(1); // axial direction
+      Rm.col(0) = cross_product<nsd>(fl.col(0), fl.col(1)); // radial direction
+  
+      // // Project E to local coordinate system - r, theta, z
+      Matrix<nsd> e_theta = Rm.col(1)* Rm.col(1).transpose(); 
+      Matrix<nsd> e_z =  Rm.col(2) * Rm.col(2).transpose();
+    
+      Matrix<nsd> Es = Rm.transpose() * E * Rm;
+         
+      S_bar = 2.0 * stM.btt * Es(1,1) * e_theta + 2.0 * stM.bzz * Es(2,2) * e_z + stM.btz * Es(2,2) * e_theta + stM.btz * Es(1,1) * e_z;
+      CC_bar = 2.0 * stM.btt * dyadic_product<nsd>(e_theta, e_theta) + 2.0 * stM.bzz * dyadic_product<nsd>(e_z, e_z) + stM.btz * (dyadic_product<nsd>(e_theta, e_z) + dyadic_product<nsd>(e_z, e_theta));
 
+      // // Compute and add isochoric stress and elasticity tensor
+      auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
+      S += S_iso;
+      CC += CC_iso;
+
+      // four fiber family components
+      for(int i = 0; i< 2 ; i++) {
       //First material property of the alpha-th anisotropic family
       double vaff = stM.aff;
-
       //second material property of the alpha-th anisotropic family
       double vbff = stM.bff;
-      Matrix<nsd> Hff = fl.col(0) * fl.col(0).transpose();
-      
-      double Inv4 = J2d * (fl.col(0).dot(C * fl.col(0)));
 
-      double Eff = Inv4-1.0;
+      Matrix<nsd> Hff = fl.col(i) * fl.col(i).transpose();
+      
+      double lambda_m_squared = (fl.col(i).dot(C * fl.col(i)));
+
+      double Eff = lambda_m_squared-1.0;
 
       double g1 = vaff*Eff*exp(vbff*Eff*Eff);
 
       S_bar = 2*g1*Hff;
 
-      g1 = vaff*(1.0 +2.0*vbff*Eff*Eff)*exp(vbff*Eff*Eff);
+      double g2 = 4.0*J4d*vaff*(1.0 +2.0*vbff*Eff*Eff)*exp(vbff*Eff*Eff);
 
-      g1=4.0*J4d*g1;
+      CC_bar = g2*dyadic_product<nsd>(Hff, Hff);
 
-      CC_bar = g1*dyadic_product<nsd>(Hff, Hff);
-      S_bar += g1*Hff;
       // Compute and add isochoric stress and elasticity tensor
       auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
       S += S_iso;
       CC += CC_iso;
+
+      }
 
     } break;
     // NeoHookean model

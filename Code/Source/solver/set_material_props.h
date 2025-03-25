@@ -203,9 +203,13 @@ SeMaterialPropertiesMapType set_material_props = {
 {
 lDmn.stM.isoType = consts::ConstitutiveModelType::stIso_Sokolis;
 auto& params = domain_params->constitutive_model.sokolis;
-lDmn.stM.C10 = 0.5 * mu;
 lDmn.stM.aff = params.a4f.value(); 
 lDmn.stM.bff = params.b4f.value(); 
+lDmn.stM.btt = params.btt.value(); 
+lDmn.stM.bzz = params.bzz.value(); 
+lDmn.stM.btz = params.btz.value(); 
+lDmn.stM.btz = params.btz.value(); 
+
 } },
 
 };

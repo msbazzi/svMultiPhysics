@@ -1185,6 +1185,10 @@ void dist_mat_consts(const ComMod& com_mod, const CmMod& cm_mod, const cmType& c
   cm.bcast(cm_mod, &lStM.b);
   cm.bcast(cm_mod, &lStM.aff);
   cm.bcast(cm_mod, &lStM.bff);
+  cm.bcast(cm_mod, &lStM.btt);
+  cm.bcast(cm_mod, &lStM.bzz);
+  cm.bcast(cm_mod, &lStM.btz);
+  cm.bcast(cm_mod, &lStM.bzt);
   cm.bcast(cm_mod, &lStM.ass);
   cm.bcast(cm_mod, &lStM.bss);
   cm.bcast(cm_mod, &lStM.afs);

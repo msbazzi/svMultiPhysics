@@ -504,6 +504,10 @@ class SokolisParameters : public ParameterLists
 
     Parameter<double> a4f;
     Parameter<double> b4f;
+    Parameter<double> btt;
+    Parameter<double> bzz;
+    Parameter<double> btz;
+    Parameter<double> bzt;
     bool value_set = false;
 };
 
