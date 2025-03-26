@@ -368,7 +368,7 @@ class SokolisTest : public :: MaterialModelTest {
         SokolisParams params;
     
         // Add the test object
-        TestSokolis* TestSokolis;
+        TestSokolis* TestSK;
     
         // Setup method to initialize variables before each test
         void SetUp() override {
@@ -417,14 +417,14 @@ class SokolisTest : public :: MaterialModelTest {
     
     
             // Initialize the test object
-            TestSokolis = new TestSokolis(params);
+            TestSK = new TestSokolis(params);
         }
     
         // TearDown method to clean up after each test, if needed
         void TearDown() override {
             // Clean up the test object
             delete TestSokolis;
-            TestSokolis = nullptr;
+            TestSK = nullptr;
         }
     };
     
@@ -437,7 +437,7 @@ class SokolisTest : public :: MaterialModelTest {
             SokolisTest::SetUp();
     
             // Use struct
-            TestSokolis->ustruct = false;
+            TestSK->ustruct = false;
         }
     };
 
@@ -1527,7 +1527,7 @@ TEST_F(STRUCT_SokolisTest, TestPK2StressIdentityF) {
                         {0.0, 1.0, 0.0},
                         {0.0, 0.0, 1.0}};
     Array<double> S_ref(3, 3); // PK2 stress initialized to zero
-    TestSokolis->testPK2StressAgainstReference(F, S_ref, rel_tol, abs_tol, verbose);
+    TestSK->testPK2StressAgainstReference(F, S_ref, rel_tol, abs_tol, verbose);
 }
 
 // Test order of convergence between finite difference PK2 stress and compute_pk2cc() PK2 stress for triaxial stretch
@@ -1540,7 +1540,7 @@ TEST_F(STRUCT_SokolisTest, TestPK2StressConvergenceOrderTriaxialStretch) {
                         {0.0, 0.0, 1.3}};
 
     // Check order of convergence between finite difference and compute_pk2cc() PK2 stress
-    TestSokolis->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+    TestSK->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
 }
 
 // Test order of convergence between finite difference PK2 stress and compute_pk2cc() PK2 stress for triaxial compression
@@ -1553,7 +1553,7 @@ TEST_F(STRUCT_SokolisTest, TestPK2StressConvergenceOrderTriaxialCompression) {
                         {0.0, 0.0, 0.7}};
 
     // Check order of convergence between finite difference and compute_pk2cc() PK2 stress
-    TestSokolis->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+    TestSK->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
 }
 
 // Test order of convergence between finite difference PK2 stress and compute_pk2cc() PK2 stress for biaxial stretch/compression
@@ -1566,7 +1566,7 @@ TEST_F(STRUCT_SokolisTest, TestPK2StressConvergenceOrderBiaxialStretchCompressio
                         {0.0, 0.0, 1.0}};
 
     // Check order of convergence between finite difference and compute_pk2cc() PK2 stress
-    TestSokolis->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+    TestSK->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
 }
 
 // Test order of convergence between finite difference PK2 stress and compute_pk2cc() PK2 stress for random F (small)
@@ -1579,7 +1579,7 @@ TEST_F(STRUCT_SokolisTest, TestPK2StressConvergenceOrderRandomFSmall) {
         convertToArray(F_std, F);
 
         // Check order of convergence between finite difference and compute_pk2cc() PK2 stress
-        TestSokolis->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+        TestSK->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
     }
 }
 
@@ -1593,7 +1593,7 @@ TEST_F(STRUCT_SokolisTest, TestPK2StressConvergenceOrderRandomFMedium) {
         convertToArray(F_std, F);
 
         // Check order of convergence between finite difference and compute_pk2cc() PK2 stress
-        TestSokolis->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+        TestSK->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
     }
 }
 
@@ -1607,7 +1607,7 @@ TEST_F(STRUCT_SokolisTest, TestPK2StressConvergenceOrderRandomFLarge) {
         convertToArray(F_std, F);
 
         // Check order of convergence between finite difference and compute_pk2cc() PK2 stress
-        TestSokolis->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+        TestSK->testPK2StressConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
     }
 }
 //triaxial extension, compression and biaxial extension - 3 new tests; struct and ustruct HO and HO-ma.
@@ -1621,7 +1621,7 @@ TEST_F(STRUCT_SokolisTest, TestMaterialElasticityConsistencyConvergenceOrderTria
                         {0.0, 0.0, 1.3}};
 
     // Check order of convergence of consistency of material elasticity
-    TestSokolis->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+    TestSK->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
 }
 
 // Test order of convergence between finite difference PK2 stress and compute_pk2cc() PK2 stress for triaxial compression
@@ -1634,7 +1634,7 @@ TEST_F(STRUCT_SokolisTest, TestMaterialElasticityConsistencyConvergenceOrderTria
                         {0.0, 0.0, 0.7}};
 
     // Check order of convergence of consistency of material elasticity
-    TestSokolis->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+    TestSK->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
 }
 
 // Test order of convergence between finite difference PK2 stress and compute_pk2cc() PK2 stress for biaxial stretch/compression
@@ -1647,7 +1647,7 @@ TEST_F(STRUCT_SokolisTest, TestMaterialElasticityConsistencyConvergenceOrderBiax
                         {0.0, 0.0, 1.0}};
 
     // Check order of convergence of consistency of material elasticity
-    TestSokolis->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+    TestSK->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
 }
 
 // Test order of convergence of consistency of material elasticity for random F (small)
@@ -1660,7 +1660,7 @@ TEST_F(STRUCT_SokolisTest, TestMaterialElasticityConsistencyConvergenceOrderRand
         convertToArray(F_std, F);
 
         // Check order of convergence of consistency of material elasticity
-        TestSokolis->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+        TestSK->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
     }
 }
 
@@ -1674,7 +1674,7 @@ TEST_F(STRUCT_SokolisTest, TestMaterialElasticityConsistencyConvergenceOrderRand
         convertToArray(F_std, F);
 
         // Check order of convergence of consistency of material elasticity
-        TestSokolis->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+        TestSK->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
     }
 }
 
@@ -1688,7 +1688,7 @@ TEST_F(STRUCT_SokolisTest, TestMaterialElasticityConsistencyConvergenceOrderRand
         convertToArray(F_std, F);
 
         // Check order of convergence of consistency of material elasticity
-        TestSokolis->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
+        TestSK->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
     }
 }
 
