@@ -333,7 +333,7 @@ public:
     MockdmnType() {
         // initialize if needed 
     }
-    // MockstModelType mockStM;
+    // Mock mockStM;
     // Mock methods if needed
 };
 class MockmshType : public mshType {
@@ -2006,15 +2006,14 @@ class TestSokolis : public TestMaterialModel {
             // I8_bar_fs = f . C_bar . s
             double I8_bar_fs = f.dot(C_bar_s);
             auto E = smTerms.E;
-            auto Einv = smTerms.Einv;
             auto C = smTerms.C;
-            auto Cinv = smTerms.Cinv;
+        
     
             // Strain energy density for Holzapfel-Ogden material model with modified anisotropic invariants (bar quantities)
             double Psi = 0.0;
             Psi += btt*E(1,1)*E(1,1) + bzz*E(2,2)*E(2,2) + bzt*E(1,1)*E(2,2);                            // Isotropic term
-            Psi += a4f / (4.0 * b4f) * chi(I4_bar_f, k) * (exp(b_f * pow(I4_bar_f - 1.0, 2)) - 1.0);   // Fiber term
-            Psi += a_s / (2.0 * b_s) * chi(I4_bar_s, k) * (exp(b_s * pow(I4_bar_s - 1.0, 2)) - 1.0);   // Sheet term
+            Psi += a4f / (4.0 * b4f) * chi(I4_bar_f, k) * (exp(b4f * pow(I4_bar_f - 1.0, 2)) - 1.0);   // Fiber term
+            Psi += a4f / (2.0 * b4f) * chi(I4_bar_s, k) * (exp(b4f * pow(I4_bar_s - 1.0, 2)) - 1.0);   // Sheet term
             //Psi += a_fs / (2.0 * b_fs) * (exp(b_fs * pow(I8_bar_fs, 2)) - 1.0);                   // Cross-fiber term
     
             return Psi;

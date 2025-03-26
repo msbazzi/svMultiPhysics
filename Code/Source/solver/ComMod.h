@@ -373,6 +373,8 @@ class stModelType
 
 
     // Sokolis model(btt, bzz, btz, bzt, bff)
+    double a4f = 0.0;
+    double b4f = 0.0;
     double btt = 0.0;
     double bzz = 0.0;
     double bzt = 0.0;
