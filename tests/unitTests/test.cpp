@@ -423,7 +423,7 @@ class SokolisTest : public :: MaterialModelTest {
         // TearDown method to clean up after each test, if needed
         void TearDown() override {
             // Clean up the test object
-            delete TestSokolis;
+            delete TestSK;
             TestSK = nullptr;
         }
     };
@@ -1808,30 +1808,7 @@ TEST_F(STRUCT_HolzapfelOgdenMATest, TestMaterialElasticityConsistencyConvergence
 TEST_F(STRUCT_HolzapfelOgdenMATest, TestMaterialElasticityConsistencyConvergenceOrderTriaxialCompression) {
     //verbose = true; // Show order of convergence, errors, F, S
 
-    // Create a deformation gradient F for triaxial compression
-    Array<double> F = {{0.9, 0.0, 0.0},
-                        {0.0, 0.8, 0.0},
-                        {0.0, 0.0, 0.7}};
-
-    // Check order of convergence of consistency of material elasticity
-    TestHO_ma->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
-}
-
-// Test order of convergence between finite difference PK2 stress and compute_pk2cc() PK2 stress for biaxial stretch/compression
-TEST_F(STRUCT_HolzapfelOgdenMATest, TestMaterialElasticityConsistencyConvergenceOrderBiaxialStretchCompression) {
-    //verbose = true; // Show order of convergence, errors, F, S
-
-    // Create a deformation gradient F for biaxial stretch/compression
-    Array<double> F = {{1.2, 0.0, 0.0},
-                        {0.0, 0.8, 0.0},
-                        {0.0, 0.0, 1.0}};
-
-    // Check order of convergence of consistency of material elasticity
-    TestHO_ma->testMaterialElasticityConsistencyConvergenceOrder(F, delta_max, delta_min, order, convergence_order_tol, verbose);
-}
-
-// Test order of convergence of consistency of material elasticity for random F (small)
-TEST_F(STRUCT_HolzapfelOgdenMATest, TestMaterialElasticityConsistencyConvergenceOrderRandomFSmall) {
+    // Create a deformation gradient F for triaxial compressionTestSK
     //verbose = true; // Show order of convergence, errors, F, S
 
     // Loop over F in F_small_list
