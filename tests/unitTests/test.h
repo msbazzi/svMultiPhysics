@@ -1602,7 +1602,7 @@ class SokolisParams : public MatParams {
                 this->s[i] = s[i];
             }
         }
-    };
+};
 // Class to contain Holzapfel-Ogden (Modified Anisortopy) material parameters
 class HolzapfelOgdenMAParams : public MatParams {
 public:
@@ -2009,7 +2009,7 @@ class TestSokolis : public TestMaterialModel {
             auto C = smTerms.C;
         
     
-            // Strain energy density for Holzapfel-Ogden material model with modified anisotropic invariants (bar quantities)
+            // Strain energy density for Sokolis material model with modified anisotropic invariants (bar quantities)
             double Psi = 0.0;
             Psi += btt*E(1,1)*E(1,1) + bzz*E(2,2)*E(2,2) + bzt*E(1,1)*E(2,2);                            // Isotropic term
             Psi += a4f / (4.0 * b4f) * chi(I4_bar_f, k) * (exp(b4f * pow(I4_bar_f - 1.0, 2)) - 1.0);   // Fiber term
