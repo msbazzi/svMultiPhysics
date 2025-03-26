@@ -1596,7 +1596,7 @@ class SokolisParams : public MatParams {
         }
     
         // Constructor with parameters
-        SokolisParams(double a4f, double b4f, double btt double bzz, double btz, double bzt, double k, double f[3], double s[3]) : a4f(a), b4f(b), btt(btt), bzz(bzz), bzt(bzt), btz(btz),k(k) {
+        SokolisParams(double a4f, double b4f, double btt, double bzz, double btz, double bzt, double k, double f[3], double s[3]) : a4f(a4f), b4f(b4f), btt(btt), bzz(bzz), bzt(bzt), btz(btz),k(k) {
             for (int i = 0; i < 3; i++) {
                 this->f[i] = f[i];
                 this->s[i] = s[i];
