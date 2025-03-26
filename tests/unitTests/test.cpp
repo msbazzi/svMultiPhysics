@@ -376,7 +376,6 @@ class SokolisTest : public :: MaterialModelTest {
             MaterialModelTest::SetUp();
     
             // Set Holzapfel-Ogden parameters from cardiac benchmark paper
-            params.a = 59.0; // Pa
             params.a4f = 18472.0; // Pa
             params.b4f = 2481.0; // Pa
             params.btt = 216.0; // Pa
