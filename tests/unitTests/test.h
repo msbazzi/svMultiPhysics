@@ -1912,7 +1912,7 @@ class TestSokolis : public TestMaterialModel {
          *
          * @param[in] params_ Parameters for the Holzapfel-Ogden material model.
          */
-        TestSokolis(const HolzapfelOgdenParams &params_) : TestMaterialModel( consts::ConstitutiveModelType::stIso_HO, consts::ConstitutiveModelType::stVol_ST91),
+        TestSokolis(const SokolisParams &params_) : TestMaterialModel( consts::ConstitutiveModelType::stIso_Sokolis, consts::ConstitutiveModelType::stVol_ST91),
             params(params_) 
             {
             // Set Holzapfel-Ogden material parameters for svMultiPhysics
