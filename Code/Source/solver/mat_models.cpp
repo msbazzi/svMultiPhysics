@@ -465,29 +465,29 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
 
       // four fiber family components
       for(int i = 0; i< 2 ; i++) {
-      //First material property of the alpha-th anisotropic family
-      double vaff = stM.aff;
-      //second material property of the alpha-th anisotropic family
-      double vbff = stM.bff;
+        //First material property of the alpha-th anisotropic family
+        double vaff = stM.aff;
+        //second material property of the alpha-th anisotropic family
+        double vbff = stM.bff;
 
-      Matrix<nsd> Hff = fl.col(i) * fl.col(i).transpose();
-      
-      double lambda_m_squared = (fl.col(i).dot(C * fl.col(i)));
+        Matrix<nsd> Hff = fl.col(i) * fl.col(i).transpose();
+        
+        double lambda_m_squared = (fl.col(i).dot(C * fl.col(i)));
 
-      double Eff = lambda_m_squared-1.0;
+        double Eff = lambda_m_squared-1.0;
 
-      double g1 = vaff*Eff*exp(vbff*Eff*Eff);
+        double g1 = 2*J2d*Eff*exp(vbff*Eff*Eff);
 
-      S_bar = 2*g1*Hff;
+        S_bar = 2*g1*Hff;
 
-      double g2 = 4.0*J4d*vaff*(1.0 +2.0*vbff*Eff*Eff)*exp(vbff*Eff*Eff);
+        double g2 = 4.0*J4d*vaff*(1.0 +2.0*vbff*Eff*Eff)*exp(vbff*Eff*Eff);
 
-      CC_bar = g2*dyadic_product<nsd>(Hff, Hff);
+        CC_bar = g2*dyadic_product<nsd>(Hff, Hff);
 
-      // Compute and add isochoric stress and elasticity tensor
-      auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
-      S += S_iso;
-      CC += CC_iso;
+        // Compute and add isochoric stress and elasticity tensor
+        auto [S_iso, CC_iso] = bar_to_iso<nsd>(S_bar, CC_bar, J2d, C, Ci);
+        S += S_iso;
+        CC += CC_iso;
 
       }
 

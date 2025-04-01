@@ -2007,11 +2007,19 @@ class TestSokolis : public TestMaterialModel {
             double I8_bar_fs = f.dot(C_bar_s);
             auto E = smTerms.E;
             auto C = smTerms.C;
-        
-    
+
+            auto Rm;
+            Rm.col(1) = f; // circunferential direction 
+            Rm.col(2) = s; // axial direction
+            Rm.col(0) = cross_product<nsd>(fl.col(0), fl.col(1)); // radial direction
+               
+            // // Project E to local coordinate system - r, theta, z
+            auto e_theta =  Rm.col(1)* Rm.col(1).transpose(); 
+            auto e_z =  Rm.col(2) * Rm.col(2).transpose() ;
+            auto Es = Rm.transpose() * E * Rm;
             // Strain energy density for Sokolis material model with modified anisotropic invariants (bar quantities)
             double Psi = 0.0;
-            Psi += btt*E(1,1)*E(1,1) + bzz*E(2,2)*E(2,2) + bzt*E(1,1)*E(2,2);                            // Isotropic term
+            Psi += btt*Es(1,1)*Es(1,1) + bzz*Es(2,2)*Es(2,2) + bzt*Es(1,1)*Es(2,2);                            // Isotropic term
             Psi += a4f / (4.0 * b4f) * chi(I4_bar_f, k) * (exp(b4f * pow(I4_bar_f - 1.0, 2)) - 1.0);   // Fiber term
             Psi += a4f / (2.0 * b4f) * chi(I4_bar_s, k) * (exp(b4f * pow(I4_bar_s - 1.0, 2)) - 1.0);   // Sheet term
             //Psi += a_fs / (2.0 * b_fs) * (exp(b_fs * pow(I8_bar_fs, 2)) - 1.0);                   // Cross-fiber term
