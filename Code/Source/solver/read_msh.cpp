@@ -1754,7 +1754,26 @@ void set_dmn_id_ff(Simulation* simulation, mshType& lM, const std::string& file_
 //
 void set_dmn_id_vtk(Simulation* simulation, mshType& mesh, const std::string& file_name, const std::string& kwrd)
 {
-  int btSiz = std::numeric_limits<int>::digits;
+
+  #define n_debug_set_dmn_id_vtk
+  #ifdef debug_set_dmn_id_vtk 
+  DebugMsg dmsg(__func__, com_mod.cm.idcm());
+  dmsg.banner();
+  dmsg << "file_name: " << file_name;
+  dmsg << "lM.gnEl: " << lM.gnEl;
+  #endif
+
+  int btSiz = std::numeric_limits<int>::digits + 1;
+
+  // Check to see if I need to increase the size of dmnId
+  //
+  if (lM.eId.size() == 0) { 
+    lM.eId.resize(lM.gnEl);
+  }
+  Vector<int> iDmn(btSiz);
+  loadvtk::read_vtu_pdata(file_name, kwrd, mesh.nsd, btSiz, 0, mesh);
+  
+
 }
 
 /// @brief This routines associates two faces with each other and sets gN.
