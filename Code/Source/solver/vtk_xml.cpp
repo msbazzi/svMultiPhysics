@@ -505,9 +505,68 @@ void read_vtp(const std::string& file_name, faceType& face)
 //
 // Reproduces Fortran 'SUBROUTINE READVTPPDATA(lFa, fName, kwrd, m, idx)'.
 //
-void read_vtp_pdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, 
-    const int idx, faceType& face)
+
+
+void  read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, const int idx, mshType& mesh, Simulation* simulation)
 {
+  std::cout << "read_vtu_cdata" << std::endl;
+  if (FILE *file = fopen(fName.c_str(), "r")) {
+      fclose(file);
+  } else {
+    throw std::runtime_error("The VTK VTU pressure data file '" + fName + "' can't be read.");
+  }
+
+
+  // Read the vtu file.
+  //
+  auto vtk_data = VtkData::create_reader(fName);
+
+  // Debug: Check what type of reader we actually got
+  if (vtk_data == nullptr) {
+    throw std::runtime_error("Failed to create VTK reader for file: " + fName);
+  }
+
+  int num_elems = vtk_data->num_elems();
+  int num_points = vtk_data->num_points();
+
+  if (num_elems != mesh.gnEl) {
+    throw std::runtime_error("The number of elements (" + std::to_string(num_elems) +
+        ") in the file '" + fName + "' is not equal to the number of elements ("
+        + std::to_string(mesh.gnEl) + ") for the mesh named '" + mesh.name + "'.");
+  }
+
+  if (!vtk_data->has_cell_data(kwrd)) { 
+    throw std::runtime_error("No CellData DataArray named '" + kwrd + 
+        "' found in the VTK file '" + fName + "' for the mesh named '" + mesh.name + "'.");
+  }
+
+  if (m == nsd) {
+    
+    Vector<int> tmpR(mesh.gnEl);
+  
+    try {
+      vtk_data->copy_cell_data(kwrd, tmpR);
+    } catch (const std::exception& e) {
+      throw std::runtime_error("Error copying cell data: " + std::string(e.what()));
+    }
+        // Check if mesh.x exists and is properly sized
+    if (mesh.x.size() == 0) {
+        // Initialize mesh.x if it doesn't exist
+        mesh.x.resize(1, mesh.gnEl);  // or whatever method your Vector class uses for resizing
+    } else if (mesh.x.size() != mesh.gnEl) {
+        throw std::runtime_error("mesh.x size (" + std::to_string(mesh.x.size()) + 
+            ") does not match mesh.gnEl (" + std::to_string(mesh.gnEl) + ")");
+    }
+    
+    for (int a = 0; a < mesh.gnEl; a++) {
+        mesh.x(0,a) = static_cast<double>(tmpR(a));
+    }
+
+  }
+}
+
+void read_vtp_pdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, 
+    const int idx, faceType& face){
   if (FILE *file = fopen(fName.c_str(), "r")) {
       fclose(file);
   } else {

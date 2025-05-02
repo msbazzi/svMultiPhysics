@@ -1752,12 +1752,12 @@ void set_dmn_id_ff(Simulation* simulation, mshType& lM, const std::string& file_
 ///
 /// \todo [NOTE] Not implemented.
 //
-void set_dmn_id_vtk(Simulation* simulation, mshType& mesh, const std::string& file_name, const std::string& kwrd)
+void set_dmn_id_vtk(Simulation* simulation, mshType& lM, const std::string& file_name, const std::string& kwrd)
 {
 
   #define n_debug_set_dmn_id_vtk
   #ifdef debug_set_dmn_id_vtk 
-  DebugMsg dmsg(__func__, com_mod.cm.idcm());
+  DebugMsg dmsg(__func__, simulation->com_mod.cm.idcm());
   dmsg.banner();
   dmsg << "file_name: " << file_name;
   dmsg << "lM.gnEl: " << lM.gnEl;
@@ -1771,7 +1771,34 @@ void set_dmn_id_vtk(Simulation* simulation, mshType& mesh, const std::string& fi
     lM.eId.resize(lM.gnEl);
   }
   Vector<int> iDmn(btSiz);
-  loadvtk::read_vtu_pdata(file_name, kwrd, mesh.nsd, btSiz, 0, mesh);
+
+  // Temporary buffer to hold raw domain IDs
+  Vector<int> raw_domain_ids(lM.gnEl);
+  raw_domain_ids = -1;
+  
+  // Load domain IDs from file using existing loader
+  int data_series = 0;
+  int data_comp = simulation->com_mod.nsd; 
+  
+  vtk_xml::read_vtu_cdata(file_name, kwrd, data_comp, data_comp , data_series, lM, simulation);
+
+
+  // Map domain IDs to bitset
+  for (int e = 0; e < lM.gnEl; e++) {
+      int iDmn = raw_domain_ids(e);
+  
+      if (iDmn >= btSiz) {
+        throw std::runtime_error("Domain ID exceeds available bit-size in set_dmn_id_vtk. Use larger type or fewer domains.");
+      }
+  
+      if (iDmn >= 0) {
+        lM.eId(e) = lM.eId(e) | (1 << iDmn);
+      }
+  }
+  
+  #ifdef debug_set_dmn_id_vtk
+   dmsg << "Completed domain ID assignment.";
+  #endif
   
 
 }
