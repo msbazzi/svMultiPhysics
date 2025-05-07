@@ -2110,7 +2110,7 @@ void read_mat_model(Simulation* simulation, EquationParameters* eq_params, Domai
   // Domain properties: elasticity modulus, poisson ratio
   double E = lDmn.prop[PhysicalProperyType::elasticity_modulus];
   double nu = lDmn.prop[PhysicalProperyType::poisson_ratio];
-
+ 
   // Shear modulus
   double mu  = 0.5 * E / (1.0 + nu);
 

@@ -507,18 +507,14 @@ void read_vtp(const std::string& file_name, faceType& face)
 //
 
 
-void  read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, const int idx, mshType& mesh, Simulation* simulation)
+void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int nsd, mshType& mesh, Simulation* simulation)
 {
-  std::cout << "read_vtu_cdata" << std::endl;
   if (FILE *file = fopen(fName.c_str(), "r")) {
       fclose(file);
   } else {
     throw std::runtime_error("The VTK VTU pressure data file '" + fName + "' can't be read.");
   }
-
-
   // Read the vtu file.
-  //
   auto vtk_data = VtkData::create_reader(fName);
 
   // Debug: Check what type of reader we actually got
@@ -540,29 +536,18 @@ void  read_vtu_cdata(const std::string& fName, const std::string& kwrd, const in
         "' found in the VTK file '" + fName + "' for the mesh named '" + mesh.name + "'.");
   }
 
-  if (m == nsd) {
-    
-    Vector<int> tmpR(mesh.gnEl);
+  Vector<int> tmpR(mesh.gnEl);
   
-    try {
-      vtk_data->copy_cell_data(kwrd, tmpR);
-    } catch (const std::exception& e) {
-      throw std::runtime_error("Error copying cell data: " + std::string(e.what()));
-    }
-        // Check if mesh.x exists and is properly sized
-    if (mesh.x.size() == 0) {
-        // Initialize mesh.x if it doesn't exist
-        mesh.x.resize(1, mesh.gnEl);  // or whatever method your Vector class uses for resizing
-    } else if (mesh.x.size() != mesh.gnEl) {
-        throw std::runtime_error("mesh.x size (" + std::to_string(mesh.x.size()) + 
-            ") does not match mesh.gnEl (" + std::to_string(mesh.gnEl) + ")");
-    }
-    
-    for (int a = 0; a < mesh.gnEl; a++) {
-        mesh.x(0,a) = static_cast<double>(tmpR(a));
-    }
-
+  try {
+    vtk_data->copy_cell_data(kwrd, tmpR);
+  } catch (const std::exception& e) {
+  throw std::runtime_error("Error copying cell data: " + std::string(e.what()));
   }
+      // Check if mesh.x exists and is properly sized    
+  for (int a = 0; a < mesh.gnEl; a++) {
+      mesh.eId(a) = static_cast<double>(tmpR(a));
+  }
+
 }
 
 void read_vtp_pdata(const std::string& fName, const std::string& kwrd, const int nsd, const int m, 
@@ -1017,6 +1002,7 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
 
   for (int iEq = 0; iEq < nEq; iEq++) {
     auto& eq = eqs[iEq];
+
 
     for (int iOut = 0; iOut < eq.nOutput; iOut++) {
       if (!eq.output[iOut].options.spatial) {
@@ -1478,7 +1464,7 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
   //
   int ne = -1;
 
-  if (!com_mod.savedOnce || nMsh > 1) {
+  if (!com_mod.savedOnce || com_mod.dmnId.size() > 0) {
     Array<int> tmpI(1,nEl);
 
     // Write the domain ID
@@ -1495,6 +1481,7 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
         }
       }
       vtk_writer->set_element_data("Domain_ID", tmpI);
+    
     }
 
     if (!com_mod.savedOnce) {

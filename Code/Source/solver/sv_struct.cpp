@@ -555,7 +555,7 @@ void struct_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
   using namespace mat_fun;
   // std::cout << "\n==================== struct_3d ===============" << std::endl;
 
-  #define n_debug_struct_3d 
+  #define debug_struct_3d 
   #ifdef debug_struct_3d 
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
@@ -669,10 +669,10 @@ void struct_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
   S = S + Svis;
 
   #ifdef debug_struct_3d 
-  dmsg << "Jac: " << Jac;
-  dmsg << "Fi: " << Fi;
-  dmsg << "VxFi: " << VxFi;
-  dmsg << "ddev: " << ddev;
+  //dmsg << "Jac: " << Jac;
+  //dmsg << "Fi: " << Fi;
+  //dmsg << "VxFi: " << VxFi;
+  //dmsg << "ddev: " << ddev;
   dmsg << "S: " << S;
   #endif
 

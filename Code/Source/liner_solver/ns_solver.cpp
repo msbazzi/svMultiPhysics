@@ -387,9 +387,9 @@ void ns_solver(fsi_linear_solver::FSILS_lhsType& lhs, fsi_linear_solver::FSILS_l
       oldxB = xB;
 
     } else { 
-      if (lhs.commu.masF) {
-        throw std::runtime_error("FSILS: Singular matrix detected");
-      }
+      // if (lhs.commu.masF) {
+      //   throw std::runtime_error("FSILS: Singular matrix detected");
+      // }
 
       xB = oldxB;
 
@@ -467,9 +467,9 @@ void ns_solver(fsi_linear_solver::FSILS_lhsType& lhs, fsi_linear_solver::FSILS_l
     ls.RI.dB = 0;
     ls.RI.fNorm = 0.0;
 
-    if (lhs.commu.masF) {
-      throw std::runtime_error("FSILS: unexpected behavior in FSILS (likely due to the ill-conditioned LHS matrix)"); 
-    }
+    // if (lhs.commu.masF) {
+    //   throw std::runtime_error("FSILS: unexpected behavior in FSILS (likely due to the ill-conditioned LHS matrix)"); 
+    // }
   }
 
   ls.RI.fNorm = sqrt(ls.RI.fNorm);

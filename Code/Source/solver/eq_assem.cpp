@@ -430,6 +430,7 @@ void global_eq_assem(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const 
     break;
 
     case EquationType::phys_FSI:
+      std::cout << "Constructing FSI" << std::endl;
       fsi::construct_fsi(com_mod, cep_mod, lM, Ag, Yg, Dg);
     break;
 

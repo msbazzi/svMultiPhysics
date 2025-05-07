@@ -1763,43 +1763,17 @@ void set_dmn_id_vtk(Simulation* simulation, mshType& lM, const std::string& file
   dmsg << "lM.gnEl: " << lM.gnEl;
   #endif
 
-  int btSiz = std::numeric_limits<int>::digits + 1;
-
-  // Check to see if I need to increase the size of dmnId
-  //
   if (lM.eId.size() == 0) { 
     lM.eId.resize(lM.gnEl);
   }
-  Vector<int> iDmn(btSiz);
-
-  // Temporary buffer to hold raw domain IDs
-  Vector<int> raw_domain_ids(lM.gnEl);
-  raw_domain_ids = -1;
   
   // Load domain IDs from file using existing loader
-  int data_series = 0;
   int data_comp = simulation->com_mod.nsd; 
   
-  vtk_xml::read_vtu_cdata(file_name, kwrd, data_comp, data_comp , data_series, lM, simulation);
-
-
-  // Map domain IDs to bitset
-  for (int e = 0; e < lM.gnEl; e++) {
-      int iDmn = raw_domain_ids(e);
-  
-      if (iDmn >= btSiz) {
-        throw std::runtime_error("Domain ID exceeds available bit-size in set_dmn_id_vtk. Use larger type or fewer domains.");
-      }
-  
-      if (iDmn >= 0) {
-        lM.eId(e) = lM.eId(e) | (1 << iDmn);
-      }
-  }
-  
+  vtk_xml::read_vtu_cdata(file_name, kwrd, data_comp, lM, simulation);
   #ifdef debug_set_dmn_id_vtk
    dmsg << "Completed domain ID assignment.";
   #endif
-  
 
 }
 
