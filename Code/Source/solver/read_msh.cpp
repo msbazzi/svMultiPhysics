@@ -1512,7 +1512,8 @@ void read_msh(Simulation* simulation)
       flag = true;
     }
   }
-
+  
+  
   #ifdef debug_read_msh 
   dmsg << "flag: " << flag;
   #endif
@@ -1766,8 +1767,7 @@ void set_dmn_id_vtk(Simulation* simulation, mshType& lM, const std::string& file
   if (lM.eId.size() == 0) { 
     lM.eId.resize(lM.gnEl);
   }
-  
-  // Load domain IDs from file using existing loader
+
   int data_comp = simulation->com_mod.nsd; 
   
   vtk_xml::read_vtu_cdata(file_name, kwrd, data_comp, lM, simulation);

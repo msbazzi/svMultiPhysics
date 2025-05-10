@@ -326,7 +326,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
       pSl = 0.0;
 
       if (nsd == 3) {
-        struct_3d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
+        struct_3d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK, cDmn);
 
 #if 0
         if (e == 0 && g == 0) {
@@ -549,13 +549,13 @@ void struct_2d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
 void struct_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, const double w, 
     const Vector<double>& N, const Array<double>& Nx, const Array<double>& al, const Array<double>& yl, 
     const Array<double>& dl, const Array<double>& bfl, const Array<double>& fN, const Array<double>& pS0l, 
-    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK) 
+    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK, int cDmn) 
 {
   using namespace consts;
   using namespace mat_fun;
   // std::cout << "\n==================== struct_3d ===============" << std::endl;
 
-  #define debug_struct_3d 
+  #define n_debug_struct_3d 
   #ifdef debug_struct_3d 
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
@@ -566,7 +566,7 @@ void struct_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
   const int dof = com_mod.dof;
   int cEq = com_mod.cEq;
   auto& eq = com_mod.eq[cEq];
-  int cDmn = com_mod.cDmn;
+  //int cDmn = com_mod.cDmn;
   auto& dmn = eq.dmn[cDmn];
   const double dt = com_mod.dt;
 

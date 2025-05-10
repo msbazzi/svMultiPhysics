@@ -2262,9 +2262,12 @@ void read_outputs(Simulation* simulation, EquationParameters* eq_params, eqType&
     }
 
     auto& output_list = output_params->output_list;
+  
 
     for (int i = 0; i < lEq.nOutput; i++) {
+
       lEq.output[i].options.set_option(output_type, output_params->get_output_value(lEq.output[i].name));
+      //std::cout << "lEq.output[i].name): " << lEq.output[i].name<< std::endl;
       if (lEq.output[i].name == "Vortex") {
         if (nsd != maxNSD) {
           lEq.output[i].options.set_option(output_type, false);

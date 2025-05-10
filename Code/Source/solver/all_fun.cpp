@@ -163,6 +163,7 @@ int domain(const ComMod& com_mod, const mshType& lM, const int iEq, const int e)
   if (lM.eId.size() == 0) { 
     throw std::runtime_error("eId is not allocated");
   }
+  
 
   for (int iDmn = 0; iDmn < eq.nDmn; iDmn++) {
     domain_id = iDmn;
@@ -172,6 +173,7 @@ int domain(const ComMod& com_mod, const mshType& lM, const int iEq, const int e)
   }
 
   return domain_id;
+
 }
 
 /// @brief Find the face ID and mesh ID based on the face name.

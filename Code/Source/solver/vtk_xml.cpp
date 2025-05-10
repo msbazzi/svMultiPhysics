@@ -199,8 +199,10 @@ void int_msh_data(const ComMod& com_mod, const CmMod& cm_mod, const mshType& lM,
   d.gx.resize(outDof,d.nNo);
 
   d.gx = all_fun::global(com_mod, cm_mod, lM, d.x);
+
   #ifdef debug_int_msh_data
   dmsg << "d.gx.size(): " << d.gx.size();
+  dmsg << "d.gx.nrows(): " << d.gx.nrows();
   #endif
 
   d.x.clear();
@@ -545,7 +547,7 @@ void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int
   }
       // Check if mesh.x exists and is properly sized    
   for (int a = 0; a < mesh.gnEl; a++) {
-      mesh.eId(a) = static_cast<double>(tmpR(a));
+      mesh.eId(a) = tmpR(a);
   }
 
 }
@@ -1025,8 +1027,8 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
         nOut = nOut + 1;
         outDof = outDof + eq.output[iOut].l;
       }
-
-      if (oGrp == OutputNameType::outGrp_J || oGrp == OutputNameType::outGrp_mises ||
+    
+      if (oGrp == OutputNameType::outGrp_J || oGrp == OutputNameType::outGrp_mises || oGrp == OutputNameType::outGrp_stif ||
           oGrp == OutputNameType::outGrp_I1) { 
         nOute = nOute + 1;
       }
@@ -1114,6 +1116,7 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
           case OutputNameType::outGrp_NA:
             throw std::runtime_error("Undefined output grp in VTK");
           break;
+          
 
           case OutputNameType::outGrp_A:
             for (int a = 0; a < msh.nNo; a++) {
@@ -1184,12 +1187,13 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
           case OutputNameType::outGrp_hFlx: 
           case OutputNameType::outGrp_stInv: 
           case OutputNameType::outGrp_vortex: 
-          case OutputNameType::outGrp_Visc: 
+          case OutputNameType::outGrp_Visc:
+          case OutputNameType::outGrp_stif: 
             post::post(simulation, msh, tmpV, lY, lD, oGrp, iEq);
             for (int a = 0; a < msh.nNo; a++) {
               int Ac = msh.gN(a);
               for (int i = 0; i < l; i++) {
-                 d[iM].x(i+is,a) = tmpV(i,a); 
+                 d[iM].x(i+is,a) = tmpV(i,a);
               }
             }
           break;
@@ -1239,6 +1243,7 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
           case OutputNameType::outGrp_stress:
           case OutputNameType::outGrp_cauchy:
           case OutputNameType::outGrp_mises:
+  
             #ifdef debug_write_vtus 
             dmsg << "case " << " outGrp_stress";
             #endif
@@ -1356,7 +1361,6 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
         }
       } 
     } 
-
   } // iM for loop 
 
 
@@ -1402,6 +1406,11 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
   //
   int iOut = 0;
   int s = outS[iOut];
+  // for (int i = 0; i < outS.size(); i++) {
+  //   std::cout << "outS[i]:  " <<  outS[i] <<std::endl;
+  //   //std::cout << "outNames[i]:  " <<  outNames[i] <<std::endl;
+  // }
+
   int e = outS[iOut+1] - 1;
   int nSh  = 0;
   tmpV = 0.0;
@@ -1458,6 +1467,11 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
     }
 
     vtk_writer->set_point_data(outNames[iOut], tmpV);
+    // std::cout << "[write_vtus] outNames[iOut]: " << outNames[iOut] << std::endl;
+    // std::cout << "[write_vtus] outS[iOut]: " << outS[iOut] << std::endl;
+    // if (outNames[iOut] == "Stiffness") {
+    //   std::cout << tmpV << std::endl;
+    // }
   }
 
   // Write element-based variables
@@ -1481,7 +1495,7 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
         }
       }
       vtk_writer->set_element_data("Domain_ID", tmpI);
-    
+  
     }
 
     if (!com_mod.savedOnce) {
@@ -1513,6 +1527,27 @@ void write_vtus(Simulation* simulation, const Array<double>& lA, const Array<dou
       }
       vtk_writer->set_element_data("Mesh_ID", tmpI);
     }
+    
+
+    // if (com_mod.dmnId.size() > 0){
+    //   Array<double> tmpV(1, nNo);
+    //   int nSh = 0;
+    //   for (int iM = 0; iM < nMsh; iM++) {
+    //     const auto& msh = com_mod.msh[iM];
+        
+    //     for (int a = 0; a < d[iM].nNo; a++) {
+    //       int Ac = msh.gN(a);  // correct source of global index
+    //       if (Ac < 0 || Ac >= com_mod.dmnId.size()) {
+    //         std::cerr << "Invalid Ac = " << Ac << ", dmnId.size() = " << com_mod.dmnId.size()
+    //                   << ", iM = " << iM << ", a = " << a << "\n";
+    //         std::exit(EXIT_FAILURE);
+    //       }
+    //       tmpV(0, a + nSh) = static_cast<double>(com_mod.dmnId[Ac]);
+    //     }
+    //     nSh += d[iM].nNo;
+    //   }
+    //   vtk_writer->set_point_data("Domain_ID", tmpV);
+    //}
   }  // if (com_mod.savedOnce || nMsh > 1)
 
   // Write element Jacobian and von Mises stress if necessary

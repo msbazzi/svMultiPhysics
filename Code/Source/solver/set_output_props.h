@@ -78,6 +78,7 @@ std::map<consts::OutputNameType, OutputProps> output_props_map =
   {OutputNameType::out_traction,     std::make_tuple(OutputNameType::outGrp_trac,   0, nsd,           "Traction") },
   {OutputNameType::out_velocity,     std::make_tuple(OutputNameType::outGrp_Y,      0, nsd,           "Velocity") },
   {OutputNameType::out_viscosity,    std::make_tuple(OutputNameType::outGrp_Visc,   0, 1,             "Viscosity") },
+  {OutputNameType::out_stiffness,    std::make_tuple(OutputNameType::outGrp_stif,   0, 1,             "Stiffness") },
   {OutputNameType::out_voltage,      std::make_tuple(OutputNameType::outGrp_Y,      0, 1,             "Action_potential") },
   {OutputNameType::out_vortex,       std::make_tuple(OutputNameType::outGrp_vortex, 0, 1,             "Vortex") },
   {OutputNameType::out_vorticity,    std::make_tuple(OutputNameType::outGrp_vort,   0, maxNSD,        "Vorticity") },

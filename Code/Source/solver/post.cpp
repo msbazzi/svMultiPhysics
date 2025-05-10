@@ -53,7 +53,7 @@ void all_post(Simulation* simulation, Array<double>& res, const Array<double>& l
   auto& cm = com_mod.cm;
   auto& cm_mod = simulation->cm_mod;
 
-  #define n_dbug_all_post
+  #define dbug_all_post
   #ifdef dbug_all_post
   DebugMsg dmsg(__func__, com_mod.cm.idcm());
   dmsg.banner();
@@ -101,6 +101,7 @@ void all_post(Simulation* simulation, Array<double>& res, const Array<double>& l
        }
 
      } else {
+      std::cout << "OutGroup: " << outGrp << std::endl;
        post(simulation, msh, tmpV, lY, lD, outGrp, iEq);
        for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
          int Ac = msh.gN(a);
@@ -1079,7 +1080,7 @@ void post(Simulation* simulation, const mshType& lM, Array<double>& res, const A
       //
       } else if (outGrp == OutputNameType::outGrp_Visc) {
         Array<double> ux(nsd,nsd);
-        Vector<double> lRes(maxNSD);
+        //Vector<double> lRes(maxNSD);
 
         for (int a = 0; a < eNoN; a++) {
           for (int i = 0; i < nsd; i++) {
@@ -1103,16 +1104,22 @@ void post(Simulation* simulation, const mshType& lM, Array<double>& res, const A
         // Compute viscosity
         fluid::get_viscosity(com_mod, eq.dmn[cDmn], gam, mu, mu_s, mu_s);
         lRes(0) = mu;
+      } else if (outGrp == OutputNameType::outGrp_stif) {
+        //Vector<double> lRes(maxNSD);
+        lRes(0) = eq.dmn[cDmn].stM.C10;
       } else {
         throw std::runtime_error("Error in the post() function.");
       }
-
+      
       // Mapping Tau into the nodes by assembling it into a local vector
       for (int a = 0; a < eNoN; a++) {
         int Ac = lM.IEN(a,e);
         sA(Ac) = sA(Ac) + w*N(a);
         for (int i = 0; i < maxNSD; i++) {
           sF(i,Ac) = sF(i,Ac) + w*N(a)*lRes(i);
+        }
+
+        if (outGrp == OutputNameType::outGrp_stif) {;
         }
       }
     }

@@ -167,7 +167,8 @@ SetEquationPropertiesMapType set_equation_props = {
        OutputNameType::out_strainInv,
        OutputNameType::out_viscosity,
        OutputNameType::out_divergence,
-       OutputNameType::out_acceleration
+       OutputNameType::out_acceleration,
+       OutputNameType::out_stiffness
      };
 
   } else {
@@ -242,7 +243,8 @@ SetEquationPropertiesMapType set_equation_props = {
     OutputNameType::out_energyFlux,
     OutputNameType::out_viscosity,
     OutputNameType::out_divergence,
-    OutputNameType::out_acceleration
+    OutputNameType::out_acceleration,
+    OutputNameType::out_stiffness
   };
 
   // Set solver parameters.
@@ -583,12 +585,12 @@ SetEquationPropertiesMapType set_equation_props = {
     outPuts = {OutputNameType::out_displacement, OutputNameType::out_stress, OutputNameType::out_cauchy, OutputNameType::out_strain};
     //simulation->com_mod.pstEq = true;
   } else {
-    nDOP = {12,2,0,0};
+    nDOP = {13,2,0,0};
     outPuts = { 
       OutputNameType::out_displacement, OutputNameType::out_mises, OutputNameType::out_stress,
       OutputNameType::out_cauchy, OutputNameType::out_strain, OutputNameType::out_jacobian,
       OutputNameType::out_defGrad, OutputNameType::out_integ, OutputNameType::out_fibDir,
-      OutputNameType::out_fibAlign, OutputNameType::out_velocity, OutputNameType::out_acceleration
+      OutputNameType::out_fibAlign, OutputNameType::out_velocity, OutputNameType::out_acceleration, OutputNameType::out_stiffness
     };
   }
 

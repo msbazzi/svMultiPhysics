@@ -337,6 +337,8 @@ void txt(Simulation* simulation, const bool init_write)
         case OutputNameType::outGrp_divV: 
         case OutputNameType::outGrp_J: 
         case OutputNameType::outGrp_mises:
+        case OutputNameType::outGrp_stif:
+          std::cout << "outGrp ============================================: " << oGrp << std::endl;
           post::all_post(simulation, tmpV, com_mod.Yn, com_mod.Dn, oGrp, iEq);
         break;
 
