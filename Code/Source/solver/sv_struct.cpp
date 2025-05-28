@@ -224,7 +224,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
   const int dof = com_mod.dof;
   const int cEq = com_mod.cEq;
   const auto& eq = com_mod.eq[cEq];
-  auto cDmn = com_mod.cDmn;
+  auto& cDmn = com_mod.cDmn;
   const int nsymd = com_mod.nsymd;
   auto& pS0 = com_mod.pS0;
   auto& pSn = com_mod.pSn;
@@ -258,6 +258,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
   for (int e = 0; e < lM.nEl; e++) {
     // Update domain and proceed if domain phys and eqn phys match
     cDmn = all_fun::domain(com_mod, lM, cEq, e);
+
     auto cPhys = eq.dmn[cDmn].phys;
     if (cPhys != EquationType::phys_struct) {
       continue; 
@@ -326,7 +327,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
       pSl = 0.0;
 
       if (nsd == 3) {
-        struct_3d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK, cDmn);
+        struct_3d(com_mod, cep_mod, eNoN, nFn, w, N, Nx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l, lR, lK);
 
 #if 0
         if (e == 0 && g == 0) {
@@ -549,7 +550,7 @@ void struct_2d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
 void struct_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, const double w, 
     const Vector<double>& N, const Array<double>& Nx, const Array<double>& al, const Array<double>& yl, 
     const Array<double>& dl, const Array<double>& bfl, const Array<double>& fN, const Array<double>& pS0l, 
-    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK, int cDmn) 
+    Vector<double>& pSl, const Vector<double>& ya_l, Array<double>& lR, Array3<double>& lK) 
 {
   using namespace consts;
   using namespace mat_fun;
@@ -566,7 +567,7 @@ void struct_3d(ComMod& com_mod, CepMod& cep_mod, const int eNoN, const int nFn, 
   const int dof = com_mod.dof;
   int cEq = com_mod.cEq;
   auto& eq = com_mod.eq[cEq];
-  //int cDmn = com_mod.cDmn;
+  int cDmn = com_mod.cDmn;
   auto& dmn = eq.dmn[cDmn];
   const double dt = com_mod.dt;
 

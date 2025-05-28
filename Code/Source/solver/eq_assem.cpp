@@ -153,11 +153,7 @@ void b_assem_neu_bc(ComMod& com_mod, const faceType& lFa, const Vector<double>& 
         case EquationType::phys_mesh:
           l_elas::b_l_elas(com_mod, eNoN, w, N, h, nV, lR);
         break;
-
-        case EquationType::phys_stokes:
-          l_elas::b_l_elas(com_mod, eNoN, w, N, h, nV, lR);
-        break;
-
+      
         case EquationType::phys_CEP:
           cep::b_cep(com_mod, eNoN, w, N, h, lR);
         break;

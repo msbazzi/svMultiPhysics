@@ -678,7 +678,7 @@ void construct_fluid(ComMod& com_mod, const mshType& lM, const Array<double>& Ag
         auto N0 = fs[0].N.rcol(g); 
         auto N1 = fs[1].N.rcol(g); 
         fluid_3d_m(com_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, w, ksix, N0, N1, 
-            Nwx, Nqx, Nwxx, al, yl, bfl, lR, lK, K_inverse_darcy_permeability, cDmn);
+            Nwx, Nqx, Nwxx, al, yl, bfl, lR, lK, K_inverse_darcy_permeability);
 
       } else if (nsd == 2) {
         auto N0 = fs[0].N.rcol(g); 
@@ -728,7 +728,7 @@ void construct_fluid(ComMod& com_mod, const mshType& lM, const Array<double>& Ag
       if (nsd == 3) {
         auto N0 = fs[0].N.rcol(g); 
         auto N1 = fs[1].N.rcol(g); 
-        fluid_3d_c(com_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, w, ksix, N0, N1, Nwx, Nqx, Nwxx, al, yl, bfl, lR, lK, K_inverse_darcy_permeability, cDmn);
+        fluid_3d_c(com_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, w, ksix, N0, N1, Nwx, Nqx, Nwxx, al, yl, bfl, lR, lK, K_inverse_darcy_permeability);
 
       } else if (nsd == 2) {
         auto N0 = fs[0].N.rcol(g); 
@@ -1430,7 +1430,7 @@ void fluid_2d_m(ComMod& com_mod, const int vmsFlag, const int eNoNw, const int e
 void fluid_3d_c(ComMod& com_mod, const int vmsFlag, const int eNoNw, const int eNoNq, const double w, 
     const Array<double>& Kxi, const Vector<double>& Nw, const Vector<double>& Nq, const Array<double>& Nwx, 
     const Array<double>& Nqx, const Array<double>& Nwxx, const Array<double>& al, const Array<double>& yl, 
-    const Array<double>& bfl, Array<double>& lR, Array3<double>& lK, double K_inverse_darcy_permeability, int cDmn)
+    const Array<double>& bfl, Array<double>& lR, Array3<double>& lK, double K_inverse_darcy_permeability)
 {
   #define n_debug_fluid3d_c
   #ifdef debug_fluid3d_c
@@ -1449,6 +1449,7 @@ void fluid_3d_c(ComMod& com_mod, const int vmsFlag, const int eNoNw, const int e
 
   int cEq = com_mod.cEq;
   auto& eq = com_mod.eq[cEq];
+  int cDmn = com_mod.cDmn;
   auto& dmn = eq.dmn[cDmn];
   const double dt = com_mod.dt;
 
@@ -1737,7 +1738,7 @@ void fluid_3d_c(ComMod& com_mod, const int vmsFlag, const int eNoNw, const int e
 void fluid_3d_m(ComMod& com_mod, const int vmsFlag, const int eNoNw, const int eNoNq, const double w,
     const Array<double>& Kxi, const Vector<double>& Nw, const Vector<double>& Nq, const Array<double>& Nwx,
     const Array<double>& Nqx, const Array<double>& Nwxx, const Array<double>& al, const Array<double>& yl,
-    const Array<double>& bfl, Array<double>& lR, Array3<double>& lK, double K_inverse_darcy_permeability, int cDmn)
+    const Array<double>& bfl, Array<double>& lR, Array3<double>& lK, double K_inverse_darcy_permeability)
 {
   #define n_debug_fluid_3d_m
   #ifdef debug_fluid_3d_m
@@ -1757,9 +1758,9 @@ void fluid_3d_m(ComMod& com_mod, const int vmsFlag, const int eNoNw, const int e
 
   int cEq = com_mod.cEq;
   auto& eq = com_mod.eq[cEq];
+  auto cDmn = com_mod.cDmn;
   auto& dmn = eq.dmn[cDmn];
   const double dt = com_mod.dt;
-
   double ctM  = 1.0;
   double ctC  = 36.0;
 

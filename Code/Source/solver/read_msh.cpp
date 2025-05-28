@@ -1512,8 +1512,6 @@ void read_msh(Simulation* simulation)
       flag = true;
     }
   }
-  
-  
   #ifdef debug_read_msh 
   dmsg << "flag: " << flag;
   #endif
@@ -1530,7 +1528,8 @@ void read_msh(Simulation* simulation)
         for (int a = 0; a < com_mod.msh[iM].eNoN; a++) {
           int Ac = com_mod.msh[iM].gIEN(a,e);
           Ac = com_mod.msh[iM].gN[Ac];
-          dmnId[Ac] = dmnId[Ac] | com_mod.msh[iM].eId[e];
+          //dmnId[Ac] = dmnId[Ac] | com_mod.msh[iM].eId[e];
+          dmnId[Ac] = com_mod.msh[iM].eId[e];
         }
       }
     }
@@ -1774,6 +1773,8 @@ void set_dmn_id_vtk(Simulation* simulation, mshType& lM, const std::string& file
   #ifdef debug_set_dmn_id_vtk
    dmsg << "Completed domain ID assignment.";
   #endif
+
+  //std::cout << "[set_dmn_id_vtk]" << lM.eId << " ";
 
 }
 

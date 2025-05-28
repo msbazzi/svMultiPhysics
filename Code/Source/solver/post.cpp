@@ -1118,9 +1118,6 @@ void post(Simulation* simulation, const mshType& lM, Array<double>& res, const A
         for (int i = 0; i < maxNSD; i++) {
           sF(i,Ac) = sF(i,Ac) + w*N(a)*lRes(i);
         }
-
-        if (outGrp == OutputNameType::outGrp_stif) {;
-        }
       }
     }
   }

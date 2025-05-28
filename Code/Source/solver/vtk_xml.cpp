@@ -548,6 +548,7 @@ void read_vtu_cdata(const std::string& fName, const std::string& kwrd, const int
       // Check if mesh.x exists and is properly sized    
   for (int a = 0; a < mesh.gnEl; a++) {
       mesh.eId(a) = tmpR(a);
+      //std::cout << "[read_vtu_cdata] a: " << a+1 << "  mesh.eId: " << mesh.eId(a) << " ";
   }
 
 }
