@@ -1512,7 +1512,6 @@ void read_msh(Simulation* simulation)
       flag = true;
     }
   }
-
   #ifdef debug_read_msh 
   dmsg << "flag: " << flag;
   #endif
@@ -1774,7 +1773,7 @@ void set_dmn_id_vtk(Simulation* simulation, mshType& lM, const std::string& file
   #endif
   for (int a = 0; a < lM.gnEl; a++) {
       lM.eId(a) = lM.eId(a) | (1UL << tmpR(a));
-      std::cout << "[set_dmn_id_vtk] a: " << a+1 << "  lM.eId: " << lM.eId(a) << " ";
+      //std::cout << "[set_dmn_id_vtk] a: " << a+1 << "  lM.eId: " << lM.eId(a) << " ";
   }
 
 }		

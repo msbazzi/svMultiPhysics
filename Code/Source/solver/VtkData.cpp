@@ -656,7 +656,6 @@ void VtkVtpData::copy_cell_data(const std::string& data_name, Vector<double>& me
 }
 void VtkVtpData::copy_cell_data(const std::string& data_name, Vector<int>& mesh_data)
 {
-  std::cout << "[VtkVtpData.copy_cell_data] data_name: " << data_name << std::endl;
   auto vtk_data = vtkIntArray::SafeDownCast(impl->vtk_polydata->GetCellData()->GetArray(data_name.c_str()));
   if (vtk_data == nullptr) { 
     return;
