@@ -1745,17 +1745,39 @@ void set_dmn_id_ff(Simulation* simulation, mshType& lM, const std::string& file_
     }
 
     lM.eId(e) = lM.eId(e) | 1UL << domain_id;
+    //lM.eId(e) = domain_id;
   }
 }
 
 /// @brief Read mesh domains from a vtu/vtp file.
 ///
-/// \todo [NOTE] Not implemented.
 //
-void set_dmn_id_vtk(Simulation* simulation, mshType& mesh, const std::string& file_name, const std::string& kwrd)
-{
-  int btSiz = std::numeric_limits<int>::digits;
-}
+void set_dmn_id_vtk(Simulation* simulation, mshType& lM, const std::string& file_name, const std::string& kwrd)
+{		
+  #define n_debug_set_dmn_id_vtk
+  #ifdef debug_set_dmn_id_vtk 
+  DebugMsg dmsg(__func__, simulation->com_mod.cm.idcm());
+  dmsg.banner();
+  dmsg << "file_name: " << file_name;
+  dmsg << "lM.gnEl: " << lM.gnEl;
+  #endif
+
+  if (lM.eId.size() == 0) { 
+    lM.eId.resize(lM.gnEl);
+  }
+
+  Vector<int> tmpR(lM.gnEl);
+
+  vtk_xml::read_vtu_cdata(file_name, kwrd, tmpR, lM, simulation);
+  #ifdef debug_set_dmn_id_vtk
+   dmsg << "Completed domain ID assignment.";
+  #endif
+  for (int a = 0; a < lM.gnEl; a++) {
+      lM.eId(a) = lM.eId(a) | (1UL << tmpR(a));
+      std::cout << "[set_dmn_id_vtk] a: " << a+1 << "  lM.eId: " << lM.eId(a) << " ";
+  }
+
+}		
 
 /// @brief This routines associates two faces with each other and sets gN.
 ///

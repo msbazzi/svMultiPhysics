@@ -163,11 +163,15 @@ int domain(const ComMod& com_mod, const mshType& lM, const int iEq, const int e)
   if (lM.eId.size() == 0) { 
     throw std::runtime_error("eId is not allocated");
   }
-
+  
   for (int iDmn = 0; iDmn < eq.nDmn; iDmn++) {
     domain_id = iDmn;
+    //std::cout << "lM.eId[e]  "<< lM.eId[e] << " " << "eq.dmn[iDmn].Id " << eq.dmn[iDmn].Id << std::endl;
     if (utils::btest(lM.eId[e], eq.dmn[iDmn].Id)) {
-      return domain_id;
+    //if (lM.eId[e] == eq.dmn[iDmn].Id) {
+     //std::cout << "domain_id: " << domain_id << std::endl;
+      return domain_id; 
+
     }
   }
 
@@ -414,6 +418,7 @@ double integ(const ComMod& com_mod, const CmMod& cm_mod, int dId, const Array<do
 
       for (int e = 0; e < msh.nEl; e++) {
         if (dId > 0 &&  msh.eId.size() != 0) {
+          //if ( msh.eId(e) != dId) {
           if (!utils::btest(msh.eId(e),dId)) {
             continue;
           }
@@ -499,7 +504,9 @@ double integ(const ComMod& com_mod, const CmMod& cm_mod, int dId, const Array<do
       for (int e = 0; e < ib.msh[iM].nEl; e++) {
         if (dId > 0 && ib.msh[iM].eId.size() != 0) {
           if (!utils::btest(ib.msh[iM].eId(e),dId)) {
+         //if (ib.msh[iM].eId(e) != dId) { 
             continue;
+
           }
         }
 
@@ -950,6 +957,7 @@ bool is_domain(const ComMod& com_mod, const eqType& eq, const int node, const co
     for (int iDmn = 0; iDmn < eq.nDmn; iDmn++) {
       if (eq.dmn[iDmn].phys == phys) {
         if (utils::btest(com_mod.dmnId(node),eq.dmn[iDmn].Id)) {
+        //if (com_mod.dmnId(node) == eq.dmn[iDmn].Id) {  
           result = true;
           break;
         }
@@ -1270,7 +1278,10 @@ void set_dmn_id(mshType& mesh, const int iDmn, const int ifirst, const int ilast
   // Set the iDimn'th bit for each element ID.
   for (int e = first; e <= last; e++) {
     mesh.eId[e] |= 1UL << iDmn;
+    //mesh.eId[e] = iDmn;
+
   }
+
 }
 
 /// @brief Computes the Skewness of an element.
