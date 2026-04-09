@@ -185,6 +185,8 @@ enum class ConstitutiveModelType
   stIso_HO = 608,
   stIso_HO_ma = 610,
   stIso_LS = 611,
+  /// Isochoric strain energy from user expression \f$\Psi(I_1,\ldots,I_9)\f$ (ExprTk).
+  stIso_formula = 612,
   stVol_NA = 650,
   stVol_Quad = 651, 
   stVol_ST91 = 652, 

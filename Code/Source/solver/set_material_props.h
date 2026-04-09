@@ -200,4 +200,18 @@ SeMaterialPropertiesMapType set_material_props = {
 
 } },
 
+//---------------------------//
+//       stIso_formula        //
+//---------------------------//
+// User-defined isochoric strain energy density Psi(I1..I9) via ExprTk string.
+//
+{consts::ConstitutiveModelType::stIso_formula, [](DomainParameters* domain_params, double mu, double kap, double lam,
+    dmnType& lDmn) -> void
+{
+  lDmn.stM.isoType = consts::ConstitutiveModelType::stIso_formula;
+  auto& params = domain_params->constitutive_model.formula_strain_energy;
+  lDmn.stM.strain_energy_formula = params.strain_energy_expression.value();
+  lDmn.stM.strain_energy_fd_step = params.finite_difference_step.value();
+} },
+
 };

@@ -9,6 +9,7 @@
 #include "mat_fun.h"
 #include "utils.h"
 #include "ArtificialNeuralNetMaterial.h"
+#include "FormulaStrainEnergyMaterial.h"
 
 #include <math.h>
 #include <utility> // std::pair
@@ -851,6 +852,51 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
 
     } break;
 
+    case ConstitutiveModelType::stIso_formula: {
+      
+      if (stM.strain_energy_formula.empty()) {
+        throw std::runtime_error(
+            "[compute_pk2cc] Formula constitutive model requires <Strain_energy_expression>.");
+      }
+
+      ArtificialNeuralNetMaterial inv_helper;
+      double psi_placeholder = 0.0;
+      double Inv[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      std::array<Matrix<nsd>, 9> dInv;
+      std::array<Tensor<nsd>, 9> ddInv;
+      Matrix<nsd> N1;
+
+      inv_helper.computeInvariantsAndDerivatives<nsd>(C, fl, nfd, J2d, J4d, Ci, Idm, Tfa, N1,
+          psi_placeholder, Inv, dInv, ddInv);
+
+      if (nfd < 2) {
+        for (int k = 5; k < 9; ++k) {
+          Inv[k] = 0.0;
+        }
+      }
+
+      formula_strain_energy::ensure_runtime(stM.strain_energy_formula);
+
+      const double fd_step = stM.strain_energy_fd_step;
+      double dpsi[9];
+      double ddpsi[9][9];
+      formula_strain_energy::gradient_hessian_fd(Inv, fd_step, dpsi, ddpsi);
+
+      for (int i = 0; i < 9; ++i) {
+        S += 2.0 * dInv[i] * dpsi[i];
+      }
+
+      S += Tfa * N1;
+
+      for (int x = 0; x < 9; ++x) {
+        CC += 4.0 * dpsi[x] * ddInv[x];
+        for (int y = 0; y < 9; ++y) {
+          CC += 4.0 * ddpsi[x][y] * dyadic_product<nsd>(dInv[x], dInv[y]);
+        }
+      }
+
+    } break;
+
 
       default:
       throw std::runtime_error("Undefined material constitutive model.");
@@ -1216,6 +1262,11 @@ void compute_pk2cc_shlc(const ComMod& com_mod, const dmnType& lDmn, const int nf
 
       } break;
 
+      case ConstitutiveModelType::stArtificialNeuralNet:
+      case ConstitutiveModelType::stIso_formula:
+        throw std::runtime_error(
+            "[compute_pk2cc_shlc] CANN and Formula strain-energy models are not supported for shell elements.");
+
       default:
         //err = "Undefined material constitutive model"
         break;
@@ -1451,6 +1502,11 @@ void compute_pk2cc_shli(const ComMod& com_mod, const dmnType& lDmn, const int nf
             exp(stM.b2*Eff*Eff) * ten_dyad_prod(flM, flM,1);
       }
     } break;
+
+    case ConstitutiveModelType::stArtificialNeuralNet:
+    case ConstitutiveModelType::stIso_formula:
+      throw std::runtime_error(
+          "[compute_pk2cc_shli] CANN and Formula strain-energy models are not supported for shell elements.");
 
     default: 
      //err = "Undefined material constitutive model"

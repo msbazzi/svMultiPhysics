@@ -1754,7 +1754,12 @@ void dist_mat_consts(const ComMod& com_mod, const CmMod& cm_mod, const cmType& c
       cm.bcast(cm_mod, lStM.paramTable.activation_functions, "paramTable.act_func");
       cm.bcast(cm_mod, lStM.paramTable.weights, "paramTable.weights");
     }
-}
+  }
+
+  if (lStM.isoType == ConstitutiveModelType::stIso_formula) {
+    cm.bcast(cm_mod, lStM.strain_energy_formula);
+    cm.bcast(cm_mod, &lStM.strain_energy_fd_step);
+  }
   
 }
 

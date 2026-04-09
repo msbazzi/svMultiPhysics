@@ -580,6 +580,30 @@ class CANNParameters : public ParameterLists
     bool value_set = false;
 };
 
+/// @brief Parameters for a user-defined isochoric strain energy \f$\Psi(I_1,\ldots,I_9)\f$
+/// parsed with ExprTk (type="Formula" on Constitutive_model).
+///
+/// \code {.xml}
+/// <Constitutive_model type="Formula">
+///   <Strain_energy_expression> 0.5 * 10000.0 * (I1 - 3)^2 </Strain_energy_expression>
+///   <Finite_difference_step> 1.0e-6 </Finite_difference_step>
+/// </Constitutive_model>
+/// \endcode
+///
+/// Available symbols are \b I1 .. \b I9 (CANN / fiber invariant convention).
+class FormulaStrainEnergyParameters : public ParameterLists
+{
+  public:
+    FormulaStrainEnergyParameters();
+    void set_values(tinyxml2::XMLElement* con_model_params);
+    void print_parameters();
+
+    Parameter<std::string> strain_energy_expression;
+    Parameter<double> finite_difference_step;
+
+    bool value_set = false;
+};
+
 /// @brief The ConstitutiveModelParameters class store parameters
 /// for various constitutive models.
 class ConstitutiveModelParameters : public ParameterLists
@@ -601,6 +625,7 @@ class ConstitutiveModelParameters : public ParameterLists
     static const std::string NEOHOOKEAN_MODEL;
     static const std::string STVENANT_KIRCHHOFF_MODEL;
     static const std::string CANN_MODEL;
+    static const std::string FORMULA_MODEL;
     static const std::map<std::string, std::string> constitutive_model_types;
 
     // Constitutive model type.
@@ -614,6 +639,7 @@ class ConstitutiveModelParameters : public ParameterLists
     NeoHookeanParameters neo_hookean;
     StVenantKirchhoffParameters stvenant_kirchhoff;
     CANNParameters cann;
+    FormulaStrainEnergyParameters formula_strain_energy;
 
     bool value_set = false;
 };

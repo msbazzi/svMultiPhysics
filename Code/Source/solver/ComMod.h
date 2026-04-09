@@ -379,6 +379,12 @@ class stModelType
 
     // CANN Model/UAnisoHyper_inv
     ArtificialNeuralNetMaterial paramTable;
+
+    /// ExprTk expression for \f$\Psi(I_1,\ldots,I_9)\f$ when isoType == stIso_formula.
+    std::string strain_energy_formula;
+
+    /// Step h for central finite differences of \f$\Psi\f$ w.r.t. invariants.
+    double strain_energy_fd_step = 1.0e-6;
   
     stModelType();
 };
