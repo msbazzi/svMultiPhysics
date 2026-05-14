@@ -38,6 +38,7 @@ std::map<consts::OutputNameType, OutputProps> output_props_map =
   {OutputNameType::out_fibAlign,     std::make_tuple(OutputNameType::outGrp_fA,     0, 1,             "Fiber_alignment") },
   {OutputNameType::out_fibDir,       std::make_tuple(OutputNameType::outGrp_fN,     0, nsd,           "Fiber_direction") },
   {OutputNameType::out_fibStrn,      std::make_tuple(OutputNameType::outGrp_fS,     0, 1,             "Fiber_shortening") },
+  {OutputNameType::out_growthFg,     std::make_tuple(OutputNameType::outGrp_Fg,     0, nsd*nsd,       "Growth_Fg") },
 
   {OutputNameType::out_heatFlux,     std::make_tuple(OutputNameType::outGrp_hFlx,   0, nsd,           "Heat_flux") },
   {OutputNameType::out_integ,        std::make_tuple(OutputNameType::outGrp_I,      0,   1, nsd == 2 ?  "Area" : "Volume") },
@@ -56,4 +57,3 @@ std::map<consts::OutputNameType, OutputProps> output_props_map =
   {OutputNameType::out_vorticity,    std::make_tuple(OutputNameType::outGrp_vort,   0, maxNSD,        "Vorticity") },
   {OutputNameType::out_WSS,          std::make_tuple(OutputNameType::outGrp_WSS,    0, maxNSD,        "WSS") }
 };
-

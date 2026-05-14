@@ -255,6 +255,11 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
   Array3<double> lK(dof*dof,eNoN,eNoN), lKd(dof*nsd,eNoN,eNoN);
 
   for (int e = 0; e < lM.nEl; e++) {
+    int cell_id = e;
+    if (lM.eDist.size() != 0) {
+      cell_id += lM.eDist(com_mod.cm.id());
+    }
+
     // Change the current domain which will be used in later function calls.
     cDmn = all_fun::domain(com_mod, lM, cEq, e);
     auto cPhys = eq.dmn[cDmn].phys;
@@ -336,12 +341,12 @@ void construct_usolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
       if (nsd == 3) {
         auto N0 = fs[0].N.col(g);
         auto N1 = fs[1].N.col(g);
-        ustruct_3d_m(com_mod, cep_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al, yl, dl, bfl, fN, ya_l, lR, lK, lKd);
+        ustruct_3d_m(com_mod, cep_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al, yl, dl, bfl, fN, ya_l, lR, lK, lKd, cell_id);
 
       } else if (nsd == 2) {
         auto N0 = fs[0].N.col(g);
         auto N1 = fs[1].N.col(g);
-        ustruct_2d_m(com_mod, cep_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al, yl, dl, bfl, fN, ya_l, lR, lK, lKd);
+        ustruct_2d_m(com_mod, cep_mod, vmsStab, fs[0].eNoN, fs[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al, yl, dl, bfl, fN, ya_l, lR, lK, lKd, cell_id);
       }
 
     } // for g = 0 to fs[0].nG
@@ -868,7 +873,7 @@ void ustruct_2d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
     const int nFn, const double w, const double Je, const Vector<double>& Nw,  const Vector<double>& Nq, 
     const Array<double>& Nwx, const Array<double>& al, const Array<double>& yl, const Array<double>& dl, 
     const Array<double>& bfl, const Array<double>& fN, const Vector<double>& ya_l, Array<double>& lR, 
-    Array3<double>& lK, Array3<double>& lKd)
+    Array3<double>& lK, Array3<double>& lKd, const int cell_id)
 {
   using namespace consts;
   using namespace mat_fun;
@@ -957,7 +962,7 @@ void ustruct_2d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
   // isochoric elasticity tensor in Voigt notation (Dm)
   Array<double> Siso(2,2), Dm(3,3);
   double Ja = 0;
-  mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya_g, Siso, Dm, Ja);
+  mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya_g, Siso, Dm, Ja, cell_id);
 
    // Viscous 2nd Piola-Kirchhoff stress and tangent contributions
   Array<double> Svis(2,2);
@@ -972,7 +977,7 @@ void ustruct_2d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
   double beta = 0;
   double drho= 0;
   double dbeta = 0;
-  mat_models::g_vol_pen(com_mod, eq.dmn[cDmn], p, rho, beta, drho, dbeta, Ja);
+  mat_models::g_vol_pen(com_mod, eq.dmn[cDmn], p, rho, beta, drho, dbeta, Ja, cell_id);
 
   // Compute stabilization parameters
   double tauM = 0.0;
@@ -1148,7 +1153,7 @@ void ustruct_3d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
     const int nFn, const double w, const double Je, const Vector<double>& Nw,  const Vector<double>& Nq, 
     const Array<double>& Nwx, const Array<double>& al, const Array<double>& yl, const Array<double>& dl, 
     const Array<double>& bfl, const Array<double>& fN, const Vector<double>& ya_l, Array<double>& lR, 
-    Array3<double>& lK, Array3<double>& lKd)
+    Array3<double>& lK, Array3<double>& lKd, const int cell_id)
 {
   using namespace consts;
   using namespace mat_fun;
@@ -1258,7 +1263,7 @@ void ustruct_3d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
   //
   Array<double> Siso(3,3), Dm(6,6);
   double Ja = 0;
-  mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya_g, Siso, Dm, Ja);
+  mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya_g, Siso, Dm, Ja, cell_id);
 
   // Viscous 2nd Piola-Kirchhoff stress and tangent contributions
   Array<double> Svis(3,3);
@@ -1274,7 +1279,7 @@ void ustruct_3d_m(ComMod& com_mod, CepMod& cep_mod, const bool vmsFlag, const in
   double beta = 0;
   double drho= 0;
   double dbeta = 0;
-  mat_models::g_vol_pen(com_mod, eq.dmn[cDmn], p, rho, beta, drho, dbeta, Ja);
+  mat_models::g_vol_pen(com_mod, eq.dmn[cDmn], p, rho, beta, drho, dbeta, Ja, cell_id);
 
   // Compute stabilization parameters
   double tauM = 0.0;
@@ -1818,4 +1823,3 @@ void ustruct_r(ComMod& com_mod, const SolutionStates& solutions)
 } 
 
 };
-

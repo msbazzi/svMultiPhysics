@@ -35,7 +35,7 @@ void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& 
 
   for (int iM = 0; iM < com_mod.nMsh; iM++) {
     auto& msh = com_mod.msh[iM];
-    Array<double> tmpV(maxNSD,msh.nNo);
+    Array<double> tmpV(res.nrows(),msh.nNo);
 
     if (outGrp == OutputNameType::outGrp_WSS ||  outGrp == OutputNameType::outGrp_trac) {
       bpost(simulation, msh,  tmpV, solutions, outGrp);
@@ -45,7 +45,7 @@ void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& 
       }
 
     } else if (outGrp == OutputNameType::outGrp_J) {
-      Array<double> tmpV(1,msh.nNo); 
+      tmpV.resize(1,msh.nNo);
       Vector<double> tmpVe(msh.nEl);
       tpost(simulation, msh, 1, tmpV, tmpVe, solutions, iEq, outGrp);
       res = 0.0;
@@ -55,7 +55,7 @@ void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& 
       }
 
      } else if (outGrp == OutputNameType::outGrp_mises) {
-       Array<double> tmpV(1,msh.nNo); 
+       tmpV.resize(1,msh.nNo);
        Vector<double> tmpVe(msh.nEl);
        tpost(simulation, msh, 1, tmpV, tmpVe, solutions, iEq, outGrp);
        res = 0.0;
@@ -72,6 +72,15 @@ void all_post(Simulation* simulation, Array<double>& res, const SolutionStates& 
          int Ac = msh.gN(a);
          res(0,Ac) = tmpV(0,a);
        }
+
+     } else if (outGrp == OutputNameType::outGrp_F || outGrp == OutputNameType::outGrp_Fg ||
+         outGrp == OutputNameType::outGrp_strain) {
+       Vector<double> tmpVe(msh.nEl);
+       tpost(simulation, msh, res.nrows(), tmpV, tmpVe, solutions, iEq, outGrp);
+       for (int a = 0; a < com_mod.msh[iM].nNo; a++) {
+         int Ac = msh.gN(a);
+         res.set_col(Ac, tmpV.col(a));
+        }
 
      } else {
        post(simulation, msh, tmpV, solutions, outGrp, iEq);
@@ -1742,6 +1751,11 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
   double Je = 0.0; 
 
   for (int e = 0; e < lM.nEl; e++) {
+    int cell_id = e;
+    if (lM.eDist.size() != 0) {
+      cell_id += lM.eDist(com_mod.cm.id());
+    }
+
     int cDmn = all_fun::domain(com_mod, lM, iEq, e);
     auto cPhys = eq.dmn[cDmn].phys;
     if (cPhys != EquationType::phys_struct && cPhys != EquationType::phys_ustruct && cPhys != EquationType::phys_lElas) {
@@ -1873,6 +1887,32 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
           }   
         break;
 
+        // Growth deformation gradient tensor (Fg)
+        case OutputNameType::outGrp_Fg: {
+          auto& stM = eq.dmn[cDmn].stM;
+          if (stM.growth_Fg.size() != 0) {
+            if (cell_id >= stM.growth_Fg.ncols()) {
+              throw std::runtime_error("[tpost] External Growth_Fg cell data has fewer entries than mesh cells.");
+            }
+
+            if (nsd == 3) {
+              for (int i = 0; i < nsd*nsd; i++) {
+                resl(i) = stM.growth_Fg(i,cell_id);
+              }
+            } else {
+              resl(0) = stM.growth_Fg(0,cell_id);
+              resl(1) = stM.growth_Fg(1,cell_id);
+              resl(2) = stM.growth_Fg(3,cell_id);
+              resl(3) = stM.growth_Fg(4,cell_id);
+            }
+          } else {
+            resl = 0.0;
+            for (int i = 0; i < nsd; i++) {
+              resl(i*nsd + i) = 1.0;
+            }
+          }
+        } break;
+
         // Green-Lagrange strain tensor
         case OutputNameType::outGrp_strain:
           if (cPhys == EquationType::phys_lElas) {
@@ -1935,7 +1975,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
             Array<double> Dm(nsymd,nsymd);
             double Ja;
             
-            mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya, S, Dm, Ja);
+            mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya, S, Dm, Ja, cell_id);
 
             // TODO: Add viscous stress
 
@@ -1953,7 +1993,7 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
           } else if (cPhys == EquationType::phys_struct) {
             Array<double> Dm(nsymd,nsymd);
             double Ja;
-            mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya, S, Dm, Ja);
+            mat_models::compute_pk2cc(com_mod, cep_mod, eq.dmn[cDmn], F, nFn, fN, ya, S, Dm, Ja, cell_id);
 
             // TODO: Add viscous stress
 

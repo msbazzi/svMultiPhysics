@@ -2240,6 +2240,54 @@ void read_mat_model(Simulation* simulation, EquationParameters* eq_params, Domai
     throw std::runtime_error("[read_mat_model] Constitutive model type '" + cmodel_str + "' is not implemented.");
   }
 
+  if (domain_params->external_cell_data.defined()) {
+    auto& params = domain_params->external_cell_data;
+    auto vtk_data = VtkData::create_reader(params.file_path.value());
+    if (vtk_data == nullptr) {
+      throw std::runtime_error("[read_mat_model] Failed to create VTK reader for external cell data file '" +
+          params.file_path.value() + "'.");
+    }
+
+    auto read_cell_vector = [&](const Parameter<std::string>& array_name, Vector<double>& values) {
+      if (!array_name.defined() || array_name.value().empty()) {
+        return;
+      }
+      if (!vtk_data->has_cell_data(array_name.value())) {
+        throw std::runtime_error("[read_mat_model] No CellData array named '" + array_name.value() +
+            "' found in external cell data file '" + params.file_path.value() + "'.");
+      }
+      values.resize(vtk_data->num_elems());
+      vtk_data->copy_cell_data(array_name.value(), values);
+      lDmn.stM.external_cell_data = true;
+    };
+
+    if (params.growth_Fg_array_name.defined() && !params.growth_Fg_array_name.value().empty()) {
+      if (!vtk_data->has_cell_data(params.growth_Fg_array_name.value())) {
+        throw std::runtime_error("[read_mat_model] No CellData array named '" + params.growth_Fg_array_name.value() +
+            "' found in external cell data file '" + params.file_path.value() + "'.");
+      }
+      lDmn.stM.growth_Fg.resize(9, vtk_data->num_elems());
+      vtk_data->copy_cell_data(params.growth_Fg_array_name.value(), lDmn.stM.growth_Fg);
+      lDmn.stM.external_cell_data = true;
+    }
+
+    read_cell_vector(params.C10_array_name, lDmn.stM.cell_C10);
+    read_cell_vector(params.C01_array_name, lDmn.stM.cell_C01);
+    read_cell_vector(params.Kpen_array_name, lDmn.stM.cell_Kpen);
+    read_cell_vector(params.a_array_name, lDmn.stM.cell_a);
+    read_cell_vector(params.b_array_name, lDmn.stM.cell_b);
+    read_cell_vector(params.aff_array_name, lDmn.stM.cell_aff);
+    read_cell_vector(params.bff_array_name, lDmn.stM.cell_bff);
+    read_cell_vector(params.ass_array_name, lDmn.stM.cell_ass);
+    read_cell_vector(params.bss_array_name, lDmn.stM.cell_bss);
+    read_cell_vector(params.afs_array_name, lDmn.stM.cell_afs);
+    read_cell_vector(params.bfs_array_name, lDmn.stM.cell_bfs);
+    read_cell_vector(params.kap_array_name, lDmn.stM.cell_kap);
+    read_cell_vector(params.khs_array_name, lDmn.stM.cell_khs);
+
+    delete vtk_data;
+  }
+
   // Set fiber reinforcement stress.
   if (domain_params->fiber_reinforcement_stress.defined()) { 
     auto& fiber_params = domain_params->fiber_reinforcement_stress;
@@ -3315,4 +3363,3 @@ void set_equation_properties(Simulation* simulation, EquationParameters* eq_para
 }
 
 };
-

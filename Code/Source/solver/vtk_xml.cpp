@@ -1244,6 +1244,7 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
 
           case OutputNameType::outGrp_J:
           case OutputNameType::outGrp_F:
+          case OutputNameType::outGrp_Fg:
           case OutputNameType::outGrp_strain:
           case OutputNameType::outGrp_fS:
           case OutputNameType::outGrp_I1:
@@ -1506,6 +1507,65 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
     }
     vtk_writer->set_element_data(outNamesE[l], tmpVe);
   }
+
+  for (int iEq = 0; iEq < nEq; iEq++) {
+    auto& eq = eqs[iEq];
+    bool write_growth_Fg = false;
+    for (int iOut = 0; iOut < eq.nOutput; iOut++) {
+      if (eq.output[iOut].options.spatial && eq.output[iOut].grp == OutputNameType::outGrp_Fg) {
+        write_growth_Fg = true;
+        break;
+      }
+    }
+
+    if (!write_growth_Fg) {
+      continue;
+    }
+
+    Array<double> tmpFg(nsd*nsd,nEl);
+    int Ec = 0;
+
+    for (int iM = 0; iM < nMsh; iM++) {
+      auto& msh = meshes[iM];
+      for (int e = 0; e < msh.nEl; e++) {
+        int cDmn = all_fun::domain(com_mod, msh, iEq, e);
+        auto& stM = eq.dmn[cDmn].stM;
+
+        int cell_id = e;
+        if (msh.eDist.size() != 0) {
+          cell_id += msh.eDist(com_mod.cm.id());
+        }
+
+        if (stM.growth_Fg.size() != 0) {
+          if (cell_id >= stM.growth_Fg.ncols()) {
+            throw std::runtime_error("[write_vtus] External Growth_Fg cell data has fewer entries than mesh cells.");
+          }
+
+          if (nsd == 3) {
+            for (int i = 0; i < nsd*nsd; i++) {
+              tmpFg(i,Ec) = stM.growth_Fg(i,cell_id);
+            }
+          } else {
+            tmpFg(0,Ec) = stM.growth_Fg(0,cell_id);
+            tmpFg(1,Ec) = stM.growth_Fg(1,cell_id);
+            tmpFg(2,Ec) = stM.growth_Fg(3,cell_id);
+            tmpFg(3,Ec) = stM.growth_Fg(4,cell_id);
+          }
+        } else {
+          for (int i = 0; i < nsd*nsd; i++) {
+            tmpFg(i,Ec) = 0.0;
+          }
+          for (int i = 0; i < nsd; i++) {
+            tmpFg(i*nsd + i,Ec) = 1.0;
+          }
+        }
+        Ec = Ec + 1;
+      }
+    }
+
+    vtk_writer->set_element_data("E_Growth_Fg", tmpFg);
+  }
+
   // Write element ghost cells if necessary
   if (lIbl) {
     ne = ne + 1;
@@ -1526,4 +1586,3 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
 }
 
 };
-

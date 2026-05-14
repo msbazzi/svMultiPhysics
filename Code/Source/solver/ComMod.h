@@ -383,6 +383,24 @@ class stModelType
     // Fiber reinforcement stress
     fibStrsType Tf;
 
+    // External cell-wise growth kinematics and material parameters.
+    // Growth_Fg is stored as 9 components per element in row-major order.
+    bool external_cell_data = false;
+    Array<double> growth_Fg;
+    Vector<double> cell_C10;
+    Vector<double> cell_C01;
+    Vector<double> cell_Kpen;
+    Vector<double> cell_a;
+    Vector<double> cell_b;
+    Vector<double> cell_aff;
+    Vector<double> cell_bff;
+    Vector<double> cell_ass;
+    Vector<double> cell_bss;
+    Vector<double> cell_afs;
+    Vector<double> cell_bfs;
+    Vector<double> cell_kap;
+    Vector<double> cell_khs;
+
     // CANN Model/UAnisoHyper_inv
     ArtificialNeuralNetMaterial paramTable;
   
@@ -1854,4 +1872,3 @@ class ComMod {
 };
 
 #endif
-

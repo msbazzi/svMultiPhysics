@@ -619,6 +619,35 @@ class ConstitutiveModelParameters : public ParameterLists
     bool value_set = false;
 };
 
+class ExternalCellDataParameters : public ParameterLists
+{
+  public:
+    ExternalCellDataParameters();
+    bool defined() const { return value_set; };
+    void set_values(tinyxml2::XMLElement* xml_elem);
+    void print_parameters();
+
+    static const std::string xml_element_name_;
+
+    Parameter<std::string> file_path;
+    Parameter<std::string> growth_Fg_array_name;
+    Parameter<std::string> C10_array_name;
+    Parameter<std::string> C01_array_name;
+    Parameter<std::string> Kpen_array_name;
+    Parameter<std::string> a_array_name;
+    Parameter<std::string> b_array_name;
+    Parameter<std::string> aff_array_name;
+    Parameter<std::string> bff_array_name;
+    Parameter<std::string> ass_array_name;
+    Parameter<std::string> bss_array_name;
+    Parameter<std::string> afs_array_name;
+    Parameter<std::string> bfs_array_name;
+    Parameter<std::string> kap_array_name;
+    Parameter<std::string> khs_array_name;
+
+    bool value_set = false;
+};
+
 /// @brief Coupling to GenBC.
 class CoupleGenBCParameters : public ParameterLists
 {
@@ -1281,6 +1310,7 @@ class DomainParameters : public ParameterLists
 
     // Parameters for sub-elements under the Domain element.
     ConstitutiveModelParameters constitutive_model;
+    ExternalCellDataParameters external_cell_data;
     FiberReinforcementStressParameters fiber_reinforcement_stress;
     StimulusParameters stimulus;
     FluidViscosityParameters fluid_viscosity;

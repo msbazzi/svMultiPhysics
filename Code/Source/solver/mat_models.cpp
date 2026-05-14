@@ -328,7 +328,8 @@ Eigen::Matrix<double, nsd, 1> compute_sheet_normal(const Eigen::Matrix<double, n
  */
 template<size_t nsd>
 void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Matrix<nsd>& F, const int nfd,
-    const Eigen::Matrix<double, nsd, Eigen::Dynamic> fl, const double ya, Matrix<nsd>& S, Matrix<2*nsd>& Dm, double& Ja)
+    const Eigen::Matrix<double, nsd, Eigen::Dynamic> fl, const double ya, Matrix<nsd>& S, Matrix<2*nsd>& Dm, double& Ja,
+    const int cell_id = -1)
 {
   using namespace consts;
   using namespace mat_fun;
@@ -352,7 +353,53 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
   Dm.setZero();
 
   // Some preliminaries
-  const auto& stM = lDmn.stM;
+  stModelType stM_local;
+  stM_local.volType = lDmn.stM.volType;
+  stM_local.Kpen = lDmn.stM.Kpen;
+  stM_local.isoType = lDmn.stM.isoType;
+  stM_local.C10 = lDmn.stM.C10;
+  stM_local.C01 = lDmn.stM.C01;
+  stM_local.a = lDmn.stM.a;
+  stM_local.b = lDmn.stM.b;
+  stM_local.aff = lDmn.stM.aff;
+  stM_local.bff = lDmn.stM.bff;
+  stM_local.ass = lDmn.stM.ass;
+  stM_local.bss = lDmn.stM.bss;
+  stM_local.afs = lDmn.stM.afs;
+  stM_local.bfs = lDmn.stM.bfs;
+  stM_local.kap = lDmn.stM.kap;
+  stM_local.khs = lDmn.stM.khs;
+  stM_local.a0 = lDmn.stM.a0;
+  stM_local.b1 = lDmn.stM.b1;
+  stM_local.b2 = lDmn.stM.b2;
+  stM_local.mu0 = lDmn.stM.mu0;
+  stM_local.Tf = lDmn.stM.Tf;
+  stM_local.paramTable = lDmn.stM.paramTable;
+
+  auto use_cell_value = [cell_id](const Vector<double>& values, double& value) {
+    if (cell_id >= 0 && values.size() != 0) {
+      if (cell_id >= values.size()) {
+        throw std::runtime_error("[compute_pk2cc] External cell data index is out of range.");
+      }
+      value = values(cell_id);
+    }
+  };
+
+  use_cell_value(lDmn.stM.cell_C10, stM_local.C10);
+  use_cell_value(lDmn.stM.cell_C01, stM_local.C01);
+  use_cell_value(lDmn.stM.cell_Kpen, stM_local.Kpen);
+  use_cell_value(lDmn.stM.cell_a, stM_local.a);
+  use_cell_value(lDmn.stM.cell_b, stM_local.b);
+  use_cell_value(lDmn.stM.cell_aff, stM_local.aff);
+  use_cell_value(lDmn.stM.cell_bff, stM_local.bff);
+  use_cell_value(lDmn.stM.cell_ass, stM_local.ass);
+  use_cell_value(lDmn.stM.cell_bss, stM_local.bss);
+  use_cell_value(lDmn.stM.cell_afs, stM_local.afs);
+  use_cell_value(lDmn.stM.cell_bfs, stM_local.bfs);
+  use_cell_value(lDmn.stM.cell_kap, stM_local.kap);
+  use_cell_value(lDmn.stM.cell_khs, stM_local.khs);
+
+  const auto& stM = stM_local;
   double nd = static_cast<double>(nsd);
   double Kp = stM.Kpen;
 
@@ -403,10 +450,10 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
     Tfa = Tfa + ya;
   }
 
-  // Electromechanics coupling - active strain
   Matrix<nsd> Fe  = F;
+  Matrix<nsd> Fg = Matrix<nsd>::Identity();
   Matrix<nsd> Fa = Matrix<nsd>::Identity();
-  Matrix<nsd> Fai = Fa;
+  Matrix<nsd> Fai = Matrix<nsd>::Identity();
 
   // This commented block implements the active strain formulation, taken from svFSI
   // It is commented out because the active strain formulation is not used in the 
@@ -414,10 +461,29 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
   // implement it.
   // if (cep_mod.cem.aStrain) {
   //   actv_strain(com_mod, cep_mod, ya, nfd, fl, Fa);
-  //   Fai = Fa.inverse();
+  //   auto Fai = Fa.inverse();
   //   Fe = F * Fai;
   // }
 
+  if (cell_id >= 0 && lDmn.stM.growth_Fg.size() != 0) {
+    if (cell_id >= lDmn.stM.growth_Fg.ncols()) {
+      throw std::runtime_error("[compute_pk2cc] External Growth_Fg cell index is out of range.");
+    }
+    for (size_t i = 0; i < nsd; i++) {
+      for (size_t j = 0; j < nsd; j++) {
+        Fg(i,j) = lDmn.stM.growth_Fg(static_cast<int>(3*i + j), cell_id);
+      }
+    }
+    double Jg = Fg.determinant();
+    if (Jg <= 0.0) {
+      throw std::runtime_error("[compute_pk2cc] External Growth_Fg has non-positive determinant.");
+    }
+    Fe = F * Fg.inverse();
+  }
+
+  // Ja is used by the ustruct volumetric/conservation equation. Keep it tied
+  // to active strain only; external growth modifies material mechanics through
+  // Fe, while the conservation geometry continues to use the total F.
   Ja = Fa.determinant();
   double J = Fe.determinant();
   double J2d = pow(J, (-2.0/nd));
@@ -856,6 +922,12 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
       throw std::runtime_error("Undefined material constitutive model.");
   } 
 
+  if (cell_id >= 0 && lDmn.stM.growth_Fg.size() != 0) {
+    const double Jg = Fg.determinant();
+    const auto Fgi = Fg.inverse();
+    S = Jg * Fgi * S * Fgi.transpose();
+  }
+
   // Convert to Voigt Notation
   cc_to_voigt_eigen<nsd>(CC, Dm);
 }
@@ -867,7 +939,7 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
  * 
  */
 void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Array<double>& F, const int nfd,
-    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm, double& Ja)
+    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm, double& Ja, const int cell_id)
 {
     // Number of spatial dimensions
     int nsd = com_mod.nsd;
@@ -888,7 +960,7 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
         Eigen::Matrix4d Dm_2D = Eigen::Matrix4d::Zero();
 
         // Call templated function
-        compute_pk2cc<2>(com_mod, cep_mod, lDmn, F_2D, nfd, fl_2D, ya, S_2D, Dm_2D, Ja);
+        compute_pk2cc<2>(com_mod, cep_mod, lDmn, F_2D, nfd, fl_2D, ya, S_2D, Dm_2D, Ja, cell_id);
 
         // Copy results back
         mat_fun::convert_to_array(S_2D, S);
@@ -912,7 +984,7 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
         Dm_3D.setZero();
 
         // Call templated function
-        compute_pk2cc<3>(com_mod, cep_mod, lDmn, F_3D, nfd, fl_3D, ya, S_3D, Dm_3D, Ja);
+        compute_pk2cc<3>(com_mod, cep_mod, lDmn, F_3D, nfd, fl_3D, ya, S_3D, Dm_3D, Ja, cell_id);
 
         // Copy results back
         mat_fun::convert_to_array(S_3D, S);
@@ -1549,11 +1621,12 @@ void compute_tau(const ComMod& com_mod, const dmnType& lDmn, const double detF, 
  * @param[out] bt Isothermal compressibility coefficient, beta.
  * @param[out] dro Derivative of rho with respect to p.
  * @param[out] dbt Derivative of beta with respect to p.
- * @param[out] Ja Active strain Jacobian.
+ * @param[in] Ja Active strain Jacobian.
+ * @param[in] cell_id External cell-data index.
  * @return None, but updates ro, bt, dro, and dbt.
  */
 void g_vol_pen(const ComMod& com_mod, const dmnType& lDmn, const double p, 
-    double& ro, double& bt, double& dro, double& dbt, const double Ja)
+    double& ro, double& bt, double& dro, double& dbt, const double Ja, const int cell_id)
 {
   using namespace consts;
 
@@ -1563,6 +1636,12 @@ void g_vol_pen(const ComMod& com_mod, const dmnType& lDmn, const double p,
   dro = 0.0;
 
   double Kp = lDmn.stM.Kpen;
+  if (cell_id >= 0 && lDmn.stM.cell_Kpen.size() != 0) {
+    if (cell_id >= lDmn.stM.cell_Kpen.size()) {
+      throw std::runtime_error("[g_vol_pen] External cell Kpen index is out of range.");
+    }
+    Kp = lDmn.stM.cell_Kpen(cell_id);
+  }
 
   if (utils::is_zero(Kp)) {
     return;

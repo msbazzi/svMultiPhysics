@@ -1175,6 +1175,59 @@ void svZeroDSolverInterfaceParameters::set_values(tinyxml2::XMLElement* xml_elem
 }
 
 //////////////////////////////////////////////////////////
+//              ExternalCellDataParameters              //
+//////////////////////////////////////////////////////////
+
+const std::string ExternalCellDataParameters::xml_element_name_ = "External_cell_data";
+
+ExternalCellDataParameters::ExternalCellDataParameters()
+{
+  bool required = true;
+  set_xml_element_name(xml_element_name_);
+
+  set_parameter("File_path", "", required, file_path);
+  set_parameter("Growth_Fg_array_name", "", !required, growth_Fg_array_name);
+  set_parameter("C10_array_name", "", !required, C10_array_name);
+  set_parameter("C01_array_name", "", !required, C01_array_name);
+  set_parameter("Kpen_array_name", "", !required, Kpen_array_name);
+  set_parameter("a_array_name", "", !required, a_array_name);
+  set_parameter("b_array_name", "", !required, b_array_name);
+  set_parameter("aff_array_name", "", !required, aff_array_name);
+  set_parameter("bff_array_name", "", !required, bff_array_name);
+  set_parameter("ass_array_name", "", !required, ass_array_name);
+  set_parameter("bss_array_name", "", !required, bss_array_name);
+  set_parameter("afs_array_name", "", !required, afs_array_name);
+  set_parameter("bfs_array_name", "", !required, bfs_array_name);
+  set_parameter("kap_array_name", "", !required, kap_array_name);
+  set_parameter("khs_array_name", "", !required, khs_array_name);
+}
+
+void ExternalCellDataParameters::set_values(tinyxml2::XMLElement* xml_elem)
+{
+  std::string error_msg = "Unknown " + xml_element_name_ + " XML element '";
+
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+  std::function<void(const std::string&, const std::string&)> ftpr =
+      std::bind(&ExternalCellDataParameters::set_parameter_value, *this, _1, _2);
+
+  xml_util_set_parameters(ftpr, xml_elem, error_msg);
+  value_set = true;
+}
+
+void ExternalCellDataParameters::print_parameters()
+{
+  if (!value_set) {
+    return;
+  }
+  std::cout << "External cell data: " << std::endl;
+  auto params_name_value = get_parameter_list();
+  for (auto& [key, value] : params_name_value) {
+    std::cout << key << ": " << value << std::endl;
+  }
+}
+
+//////////////////////////////////////////////////////////
 //                  OutputParameters                    //
 //////////////////////////////////////////////////////////
 
@@ -1673,6 +1726,8 @@ void DomainParameters::print_parameters()
 
   constitutive_model.print_parameters();
 
+  external_cell_data.print_parameters();
+
   fiber_reinforcement_stress.print_parameters();
 
   stimulus.print_parameters();
@@ -1714,6 +1769,9 @@ void DomainParameters::set_values(tinyxml2::XMLElement* domain_elem, bool from_e
   
     if (name == ConstitutiveModelParameters::xml_element_name_) {
       constitutive_model.set_values(item);
+
+    } else if (name == ExternalCellDataParameters::xml_element_name_) {
+      external_cell_data.set_values(item);
 
     } else if (name == FiberReinforcementStressParameters::xml_element_name_) {
       fiber_reinforcement_stress.set_values(item);
@@ -2436,6 +2494,9 @@ void EquationParameters::set_values(tinyxml2::XMLElement* eq_elem, DomainParamet
 
     } else if (name == FiberReinforcementStressParameters::xml_element_name_) {
       domain->fiber_reinforcement_stress.set_values(item);
+
+    } else if (name == ExternalCellDataParameters::xml_element_name_) {
+      domain->external_cell_data.set_values(item);
 
     } else if (name == LinearSolverParameters::xml_element_name_) {
       linear_solver.set_values(item);
