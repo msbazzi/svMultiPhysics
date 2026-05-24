@@ -1187,6 +1187,7 @@ ExternalCellDataParameters::ExternalCellDataParameters()
 
   set_parameter("File_path", "", required, file_path);
   set_parameter("Growth_Fg_array_name", "", !required, growth_Fg_array_name);
+  set_parameter("Growth_ramp_steps", 1, !required, growth_ramp_steps, {1, std::numeric_limits<int>::infinity()});
   set_parameter("C10_array_name", "", !required, C10_array_name);
   set_parameter("C01_array_name", "", !required, C01_array_name);
   set_parameter("Kpen_array_name", "", !required, Kpen_array_name);
@@ -2605,6 +2606,7 @@ GeneralSimulationParameters::GeneralSimulationParameters()
   set_parameter("Restart_file_name", "stFile", !required, restart_file_name);
 
   set_parameter("Save_averaged_results", false, !required, save_averaged_results);
+  set_parameter("Save_deformed_geometry_to_VTK", false, !required, save_deformed_geometry_to_vtk);
   set_parameter("Save_results_in_folder", "", !required, save_results_in_folder);
   set_parameter("Save_results_to_VTK_format", false, required, save_results_to_vtk_format);
   set_parameter("Searched_file_name_to_trigger_stop", "", !required, searched_file_name_to_trigger_stop);

@@ -320,6 +320,7 @@ void distribute(Simulation* simulation)
     cm.bcast(cm_mod, &com_mod.saveATS);
     cm.bcast(cm_mod, &com_mod.saveAve);
     cm.bcast(cm_mod, &com_mod.saveVTK);
+    cm.bcast(cm_mod, &com_mod.saveDeformedVTK);
     cm.bcast(cm_mod, &com_mod.bin2VTK);
 
     cm.bcast(cm_mod, &com_mod.mvMsh);
@@ -500,6 +501,78 @@ void distribute(Simulation* simulation)
     com_mod.Dinit.resize(com_mod.nsd, com_mod.tnNo);
     com_mod.Dinit = all_fun::local(com_mod, cm_mod, cm, tmpX);
     tmpX.clear();
+  }
+
+  // Reorder external cell-wise growth data (Growth_Fg and any cell-wise material
+  // arrays) from the original VTU element ordering into the post-partition element
+  // ordering, so it can be indexed by the partitioned element id (e + eDist(rank))
+  // during assembly and output. This runs on the master, where lM.otnIEN
+  // (old->new element map) is still available, and before the per-domain material
+  // data is broadcast to the other processors.
+  if (cm.mas(cm_mod)) {
+    for (int iEq = 0; iEq < com_mod.nEq; iEq++) {
+      auto& dEq = com_mod.eq[iEq];
+      for (int iDmn = 0; iDmn < dEq.nDmn; iDmn++) {
+        auto& stM = dEq.dmn[iDmn].stM;
+        if (!stM.external_cell_data) {
+          continue;
+        }
+        if (com_mod.nMsh != 1) {
+          throw std::runtime_error("[distribute] External cell data (Growth_Fg) is currently "
+              "supported only for single-mesh simulations.");
+        }
+        auto& lM = com_mod.msh[0];
+
+        auto reorder_array = [&lM](Array<double>& arr) {
+          if (arr.size() == 0) {
+            return;
+          }
+          if (arr.ncols() != lM.gnEl) {
+            throw std::runtime_error("[distribute] External cell data column count does not "
+                "match the number of mesh elements.");
+          }
+          int nc = arr.nrows();
+          Array<double> tmp(nc, lM.gnEl);
+          for (int e = 0; e < lM.gnEl; e++) {
+            int Ec = lM.otnIEN(e);
+            for (int i = 0; i < nc; i++) {
+              tmp(i, Ec) = arr(i, e);
+            }
+          }
+          arr = tmp;
+        };
+
+        auto reorder_vector = [&lM](Vector<double>& v) {
+          if (v.size() == 0) {
+            return;
+          }
+          if (v.size() != lM.gnEl) {
+            throw std::runtime_error("[distribute] External cell data length does not match "
+                "the number of mesh elements.");
+          }
+          Vector<double> tmp(lM.gnEl);
+          for (int e = 0; e < lM.gnEl; e++) {
+            tmp(lM.otnIEN(e)) = v(e);
+          }
+          v = tmp;
+        };
+
+        reorder_array(stM.growth_Fg);
+        reorder_vector(stM.cell_C10);
+        reorder_vector(stM.cell_C01);
+        reorder_vector(stM.cell_Kpen);
+        reorder_vector(stM.cell_a);
+        reorder_vector(stM.cell_b);
+        reorder_vector(stM.cell_aff);
+        reorder_vector(stM.cell_bff);
+        reorder_vector(stM.cell_ass);
+        reorder_vector(stM.cell_bss);
+        reorder_vector(stM.cell_afs);
+        reorder_vector(stM.cell_bfs);
+        reorder_vector(stM.cell_kap);
+        reorder_vector(stM.cell_khs);
+      }
+    }
   }
 
   // And distributing eq to processors
@@ -1760,7 +1833,51 @@ void dist_mat_consts(const ComMod& com_mod, const CmMod& cm_mod, const cmType& c
       cm.bcast(cm_mod, lStM.paramTable.weights, "paramTable.weights");
     }
 }
-  
+
+  // Distribute external cell-wise growth kinematics and material parameters.
+  // The data has already been reordered into post-partition element order on the
+  // master, so every processor receives the full array and indexes its own
+  // elements with the partitioned element id (e + eDist(rank)).
+  cm.bcast(cm_mod, &lStM.external_cell_data);
+  cm.bcast(cm_mod, &lStM.growth_ramp_steps);
+
+  if (lStM.external_cell_data) {
+    // Growth_Fg: Array<double>(9, nElem).
+    int fg_ncols = cm.mas(cm_mod) ? lStM.growth_Fg.ncols() : 0;
+    cm.bcast(cm_mod, &fg_ncols);
+    if (fg_ncols > 0) {
+      if (cm.slv(cm_mod)) {
+        lStM.growth_Fg.resize(9, fg_ncols);
+      }
+      cm.bcast(cm_mod, lStM.growth_Fg, "growth_Fg");
+    }
+
+    // Optional cell-wise material parameter arrays.
+    auto bcast_cell_vector = [&](Vector<double>& v) {
+      int n = cm.mas(cm_mod) ? v.size() : 0;
+      cm.bcast(cm_mod, &n);
+      if (n > 0) {
+        if (cm.slv(cm_mod)) {
+          v.resize(n);
+        }
+        cm.bcast(cm_mod, v);
+      }
+    };
+
+    bcast_cell_vector(lStM.cell_C10);
+    bcast_cell_vector(lStM.cell_C01);
+    bcast_cell_vector(lStM.cell_Kpen);
+    bcast_cell_vector(lStM.cell_a);
+    bcast_cell_vector(lStM.cell_b);
+    bcast_cell_vector(lStM.cell_aff);
+    bcast_cell_vector(lStM.cell_bff);
+    bcast_cell_vector(lStM.cell_ass);
+    bcast_cell_vector(lStM.cell_bss);
+    bcast_cell_vector(lStM.cell_afs);
+    bcast_cell_vector(lStM.cell_bfs);
+    bcast_cell_vector(lStM.cell_kap);
+    bcast_cell_vector(lStM.cell_khs);
+  }
 }
 
 

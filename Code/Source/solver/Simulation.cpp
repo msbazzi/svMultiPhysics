@@ -64,6 +64,7 @@ void Simulation::set_module_parameters()
   com_mod.stopTrigName = general.searched_file_name_to_trigger_stop.value();
   com_mod.ichckIEN = general.check_ien_order.value();
   com_mod.saveVTK = general.save_results_to_vtk_format.value();
+  com_mod.saveDeformedVTK = general.save_deformed_geometry_to_vtk.value();
   com_mod.saveName = general.name_prefix_of_saved_vtk_files.value();
   com_mod.saveName = chnl_mod.appPath + com_mod.saveName;
   com_mod.saveIncr = general.increment_in_saving_vtk_files.value();

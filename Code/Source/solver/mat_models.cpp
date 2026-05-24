@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "ArtificialNeuralNetMaterial.h"
 
+#include <algorithm>
 #include <math.h>
 #include <utility> // std::pair
 
@@ -469,9 +470,13 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
     if (cell_id >= lDmn.stM.growth_Fg.ncols()) {
       throw std::runtime_error("[compute_pk2cc] External Growth_Fg cell index is out of range.");
     }
+    double ramp = std::min(1.0, static_cast<double>(std::max(1, com_mod.cTS)) /
+        static_cast<double>(std::max(1, lDmn.stM.growth_ramp_steps)));
     for (size_t i = 0; i < nsd; i++) {
       for (size_t j = 0; j < nsd; j++) {
-        Fg(i,j) = lDmn.stM.growth_Fg(static_cast<int>(3*i + j), cell_id);
+        double target_Fg = lDmn.stM.growth_Fg(static_cast<int>(3*i + j), cell_id);
+        double identity = (i == j) ? 1.0 : 0.0;
+        Fg(i,j) = identity + ramp * (target_Fg - identity);
       }
     }
     double Jg = Fg.determinant();
@@ -923,9 +928,41 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
   } 
 
   if (cell_id >= 0 && lDmn.stM.growth_Fg.size() != 0) {
+    // Multiplicative growth: F = Fe Fg. The constitutive model above produced
+    // S and CC in the *grown* reference configuration (work-conjugate to Ee).
+    // Pull both legs of S and all four legs of CC back to the *original*
+    // reference so they are consistent with the residual/tangent that the
+    // global assembly expects:
+    //   S_ref^{IJ}       = Jg Fgi^I_A Fgi^J_B S_e^{AB}
+    //   CC_ref^{IJKL}    = Jg Fgi^I_A Fgi^J_B Fgi^K_C Fgi^L_D CC_e^{ABCD}
+    // Without the CC pull-back the tangent is inconsistent with the residual
+    // whenever Fg != I and Newton convergence degrades.
     const double Jg = Fg.determinant();
-    const auto Fgi = Fg.inverse();
+    const Matrix<nsd> Fgi = Fg.inverse();
     S = Jg * Fgi * S * Fgi.transpose();
+
+    Tensor<nsd> CC_ref;
+    CC_ref.setZero();
+    for (int I = 0; I < static_cast<int>(nsd); ++I) {
+      for (int J = 0; J < static_cast<int>(nsd); ++J) {
+        for (int K = 0; K < static_cast<int>(nsd); ++K) {
+          for (int L = 0; L < static_cast<int>(nsd); ++L) {
+            double sum = 0.0;
+            for (int A = 0; A < static_cast<int>(nsd); ++A) {
+              for (int B = 0; B < static_cast<int>(nsd); ++B) {
+                for (int C = 0; C < static_cast<int>(nsd); ++C) {
+                  for (int D = 0; D < static_cast<int>(nsd); ++D) {
+                    sum += Fgi(I,A) * Fgi(J,B) * Fgi(K,C) * Fgi(L,D) * CC(A,B,C,D);
+                  }
+                }
+              }
+            }
+            CC_ref(I,J,K,L) = Jg * sum;
+          }
+        }
+      }
+    }
+    CC = CC_ref;
   }
 
   // Convert to Voigt Notation

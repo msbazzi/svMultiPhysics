@@ -386,6 +386,7 @@ class stModelType
     // External cell-wise growth kinematics and material parameters.
     // Growth_Fg is stored as 9 components per element in row-major order.
     bool external_cell_data = false;
+    int growth_ramp_steps = 1;
     Array<double> growth_Fg;
     Vector<double> cell_C10;
     Vector<double> cell_C01;
@@ -1571,6 +1572,9 @@ class ComMod {
 
     /// @brief Whether to save to VTK files
     bool saveVTK = false;
+
+    /// @brief Whether VTK mesh points are written in the deformed configuration
+    bool saveDeformedVTK = false;
 
     /// @brief Whether any file being saved
     bool savedOnce = false;

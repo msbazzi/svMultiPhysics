@@ -13,6 +13,8 @@
 #include "shells.h"
 #include "utils.h"
 #include "vtk_xml.h"
+
+#include <algorithm>
 #include <math.h>
 
 namespace post {
@@ -1895,15 +1897,18 @@ void tpost(Simulation* simulation, const mshType& lM, const int m, Array<double>
               throw std::runtime_error("[tpost] External Growth_Fg cell data has fewer entries than mesh cells.");
             }
 
+            double ramp = std::min(1.0, static_cast<double>(std::max(1, com_mod.cTS)) /
+                static_cast<double>(std::max(1, stM.growth_ramp_steps)));
             if (nsd == 3) {
               for (int i = 0; i < nsd*nsd; i++) {
-                resl(i) = stM.growth_Fg(i,cell_id);
+                double identity = (i == 0 || i == 4 || i == 8) ? 1.0 : 0.0;
+                resl(i) = identity + ramp * (stM.growth_Fg(i,cell_id) - identity);
               }
             } else {
-              resl(0) = stM.growth_Fg(0,cell_id);
-              resl(1) = stM.growth_Fg(1,cell_id);
-              resl(2) = stM.growth_Fg(3,cell_id);
-              resl(3) = stM.growth_Fg(4,cell_id);
+              resl(0) = 1.0 + ramp * (stM.growth_Fg(0,cell_id) - 1.0);
+              resl(1) = ramp * stM.growth_Fg(1,cell_id);
+              resl(2) = ramp * stM.growth_Fg(3,cell_id);
+              resl(3) = 1.0 + ramp * (stM.growth_Fg(4,cell_id) - 1.0);
             }
           } else {
             resl = 0.0;

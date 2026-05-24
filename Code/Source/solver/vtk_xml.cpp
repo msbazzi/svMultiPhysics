@@ -11,6 +11,7 @@
 #include "consts.h"
 #include "post.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 #include <stdio.h>
@@ -1011,6 +1012,17 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
   std::vector<int> outS(nOut+1); 
   std::vector<std::string>outNamesE(nOute);
 
+  int deformed_output_eq = -1;
+  if (com_mod.saveDeformedVTK) {
+    for (int iEq = 0; iEq < nEq; iEq++) {
+      if (eqs[iEq].phys == EquationType::phys_struct || eqs[iEq].phys == EquationType::phys_ustruct ||
+          eqs[iEq].phys == EquationType::phys_lElas) {
+        deformed_output_eq = iEq;
+        break;
+      }
+    }
+  }
+
   // Prepare all solultions in to dataType d
   //
   std::vector<dataType> d(nMsh);
@@ -1029,7 +1041,11 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
     for (int a = 0; a < msh.nNo; a++) {
       int Ac = msh.gN(a);
       for (int i = 0; i < nsd; i++) {
-        d[iM].x(i,a) = com_mod.x(i,Ac) / msh.scF;
+        double displacement = 0.0;
+        if (deformed_output_eq >= 0) {
+          displacement = lD(eqs[deformed_output_eq].s + i,Ac);
+        }
+        d[iM].x(i,a) = (com_mod.x(i,Ac) + displacement) / msh.scF;
       }
     }
 
@@ -1522,34 +1538,42 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
       continue;
     }
 
+    // Element-wise growth tensor output. This is assembled on the master from the
+    // gathered, original-order element list (d[iM].nEl == gnEl on the master, 0 on
+    // the other ranks, matching the other element outputs). stM.growth_Fg is stored
+    // in post-partition element order, so original element e maps to column otnIEN(e).
     Array<double> tmpFg(nsd*nsd,nEl);
     int Ec = 0;
 
+    double ramp = std::min(1.0, static_cast<double>(std::max(1, com_mod.cTS)) /
+        static_cast<double>(std::max(1, eq.dmn[0].stM.growth_ramp_steps)));
+
     for (int iM = 0; iM < nMsh; iM++) {
       auto& msh = meshes[iM];
-      for (int e = 0; e < msh.nEl; e++) {
-        int cDmn = all_fun::domain(com_mod, msh, iEq, e);
-        auto& stM = eq.dmn[cDmn].stM;
 
-        int cell_id = e;
-        if (msh.eDist.size() != 0) {
-          cell_id += msh.eDist(com_mod.cm.id());
+      // Find a domain on this equation that carries external growth data.
+      const stModelType* stMp = nullptr;
+      for (int iDmn = 0; iDmn < eq.nDmn; iDmn++) {
+        if (eq.dmn[iDmn].stM.growth_Fg.size() != 0) {
+          stMp = &eq.dmn[iDmn].stM;
+          break;
         }
+      }
 
-        if (stM.growth_Fg.size() != 0) {
-          if (cell_id >= stM.growth_Fg.ncols()) {
-            throw std::runtime_error("[write_vtus] External Growth_Fg cell data has fewer entries than mesh cells.");
-          }
+      for (int e = 0; e < d[iM].nEl; e++) {
+        int eNew = (msh.otnIEN.size() != 0) ? msh.otnIEN(e) : e;
 
+        if (stMp != nullptr && eNew < stMp->growth_Fg.ncols()) {
           if (nsd == 3) {
             for (int i = 0; i < nsd*nsd; i++) {
-              tmpFg(i,Ec) = stM.growth_Fg(i,cell_id);
+              double identity = (i == 0 || i == 4 || i == 8) ? 1.0 : 0.0;
+              tmpFg(i,Ec) = identity + ramp * (stMp->growth_Fg(i,eNew) - identity);
             }
           } else {
-            tmpFg(0,Ec) = stM.growth_Fg(0,cell_id);
-            tmpFg(1,Ec) = stM.growth_Fg(1,cell_id);
-            tmpFg(2,Ec) = stM.growth_Fg(3,cell_id);
-            tmpFg(3,Ec) = stM.growth_Fg(4,cell_id);
+            tmpFg(0,Ec) = 1.0 + ramp * (stMp->growth_Fg(0,eNew) - 1.0);
+            tmpFg(1,Ec) = ramp * stMp->growth_Fg(1,eNew);
+            tmpFg(2,Ec) = ramp * stMp->growth_Fg(3,eNew);
+            tmpFg(3,Ec) = 1.0 + ramp * (stMp->growth_Fg(4,eNew) - 1.0);
           }
         } else {
           for (int i = 0; i < nsd*nsd; i++) {

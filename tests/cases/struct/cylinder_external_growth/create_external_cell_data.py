@@ -33,7 +33,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--theta-start", type=float, default=1.00, help="Growth stretch at the minimum axial coordinate.")
     parser.add_argument("--theta-end", type=float, default=1.08, help="Growth stretch at the maximum axial coordinate.")
     parser.add_argument("--c10", type=float, default=5.0e4, help="Constant Material_C10 value.")
-    parser.add_argument("--kpen", type=float, default=5.0e5, help="Constant Material_Kpen value.")
+    parser.add_argument("--kpen", type=float, default=5.0e4, help="Constant Material_Kpen value.")
+    parser.add_argument(
+        "--profile",
+        choices=("linear", "smoothstep"),
+        default="smoothstep",
+        help="Axial growth profile used between theta-start and theta-end.",
+    )
     parser.add_argument(
         "--growth-mode",
         choices=("isotropic", "axial"),
@@ -98,6 +104,12 @@ def normalized_coordinate(values: list[float], value: float) -> float:
     return (value - lo) / (hi - lo)
 
 
+def profile_coordinate(s: float, profile: str) -> float:
+    if profile == "smoothstep":
+        return s * s * (3.0 - 2.0 * s)
+    return s
+
+
 def add_cell_data(grid: vtk.vtkUnstructuredGrid, axis: int, args: argparse.Namespace) -> None:
     ncell = grid.GetNumberOfCells()
     axial_values = [cell_centroid(grid, cell_id)[axis] for cell_id in range(ncell)]
@@ -114,6 +126,7 @@ def add_cell_data(grid: vtk.vtkUnstructuredGrid, axis: int, args: argparse.Names
 
     for axial_value in axial_values:
         s = normalized_coordinate(axial_values, axial_value)
+        s = profile_coordinate(s, args.profile)
         theta = args.theta_start + s * (args.theta_end - args.theta_start)
 
         if args.growth_mode == "isotropic":

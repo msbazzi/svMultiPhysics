@@ -631,6 +631,7 @@ class ExternalCellDataParameters : public ParameterLists
 
     Parameter<std::string> file_path;
     Parameter<std::string> growth_Fg_array_name;
+    Parameter<int> growth_ramp_steps;
     Parameter<std::string> C10_array_name;
     Parameter<std::string> C01_array_name;
     Parameter<std::string> Kpen_array_name;
@@ -1562,6 +1563,7 @@ class GeneralSimulationParameters : public ParameterLists
     Parameter<bool> debug;
     Parameter<bool> overwrite_restart_file;
     Parameter<bool> save_averaged_results;
+    Parameter<bool> save_deformed_geometry_to_vtk;
     Parameter<bool> save_results_to_vtk_format;
     Parameter<bool> simulation_requires_remeshing;
     Parameter<bool> start_averaging_from_zero;

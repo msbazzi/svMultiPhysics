@@ -2242,6 +2242,7 @@ void read_mat_model(Simulation* simulation, EquationParameters* eq_params, Domai
 
   if (domain_params->external_cell_data.defined()) {
     auto& params = domain_params->external_cell_data;
+    lDmn.stM.growth_ramp_steps = params.growth_ramp_steps.value();
     auto vtk_data = VtkData::create_reader(params.file_path.value());
     if (vtk_data == nullptr) {
       throw std::runtime_error("[read_mat_model] Failed to create VTK reader for external cell data file '" +
