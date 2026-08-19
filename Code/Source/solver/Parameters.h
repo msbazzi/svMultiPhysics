@@ -279,6 +279,14 @@ struct CANNRow {
     Parameter<int> invariant_index;
     VectorParameter<int> activation_functions;  // Fixed size (3 values)
     VectorParameter<double> weights;           // Fixed size (3 values)
+    Parameter<double> dispersion;              // Optional GOH kappa for I4 rows
+    bool recruitment_enabled = false;
+    double recruitment_lower_stretch = 1.0;
+    double recruitment_upper_stretch = 1.0;
+    double recruitment_tau = 1.0;
+    double recruitment_alpha = 1.0;
+    double recruitment_beta = 1.0;
+    int recruitment_quadrature_points = 32;
 };
 
 /// @brief Defines parameter name and value, and stores them in

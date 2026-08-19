@@ -47,6 +47,7 @@
 //   - EquationParameters
 //
 #include "Parameters.h"
+#include "ArtificialNeuralNetMaterial.h"
 #include "LinearAlgebra.h"
 #include "consts.h"
 #include "ustruct.h"
@@ -70,6 +71,16 @@ std::string uppercase_xml_name(const std::string &value) {
       upper.begin(), upper.end(), upper.begin(),
       [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
   return upper;
+}
+
+std::string trim_copy(const std::string &value) {
+  const auto first = value.find_first_not_of(" \t\n\r");
+  if (first == std::string::npos) {
+    return "";
+  }
+
+  const auto last = value.find_last_not_of(" \t\n\r");
+  return value.substr(first, last - first + 1);
 }
 
 std::string missing_xml_attribute_message(tinyxml2::XMLElement *element,
@@ -978,6 +989,7 @@ CANNRowParameters::CANNRowParameters() {
   set_parameter("Activation_functions", activation_func, required,
                 row.activation_functions);
   set_parameter("Weights", weights_vec, required, row.weights);
+  set_parameter("Dispersion", 0.0, !required, row.dispersion);
 }
 
 void CANNRowParameters::print_parameters() {
@@ -1014,6 +1026,87 @@ void CANNRowParameters::set_values(tinyxml2::XMLElement *row_elem) {
   // Iterate over all child elements for this row
   while (item != nullptr) {
     auto name = std::string(item->Value());
+
+    if (name == "Recruitment") {
+      const char *distribution = item->Attribute("distribution");
+      if (distribution == nullptr ||
+          uppercase_xml_name(trim_copy(distribution)) != "BETA") {
+        svmp::raise<svmp::ParseException>(
+            SVMP_HERE,
+            "CANN Add_row Recruitment supports only distribution=\"beta\".");
+      }
+
+      bool has_lower = false;
+      bool has_upper = false;
+      bool has_tau = false;
+      bool has_alpha = false;
+      bool has_beta = false;
+      bool has_quadrature = false;
+
+      auto recruitment_item = item->FirstChildElement();
+      while (recruitment_item != nullptr) {
+        const std::string recruitment_name = recruitment_item->Value();
+        const char *recruitment_text = recruitment_item->GetText();
+        if (recruitment_text == nullptr) {
+          svmp::raise<svmp::ParseException>(
+              SVMP_HERE, "CANN Add_row Recruitment XML element '" +
+                             recruitment_name + "' is empty.");
+        }
+
+        const std::string recruitment_value = trim_copy(recruitment_text);
+        try {
+          if (recruitment_name == "Lower_stretch") {
+            row.recruitment_lower_stretch = std::stod(recruitment_value);
+            has_lower = true;
+          } else if (recruitment_name == "Upper_stretch") {
+            row.recruitment_upper_stretch = std::stod(recruitment_value);
+            has_upper = true;
+          } else if (recruitment_name == "Tau") {
+            row.recruitment_tau = std::stod(recruitment_value);
+            has_tau = true;
+          } else if (recruitment_name == "Alpha") {
+            row.recruitment_alpha = std::stod(recruitment_value);
+            has_alpha = true;
+          } else if (recruitment_name == "Beta") {
+            row.recruitment_beta = std::stod(recruitment_value);
+            has_beta = true;
+          } else if (recruitment_name == "Quadrature_points") {
+            row.recruitment_quadrature_points = std::stoi(recruitment_value);
+            has_quadrature = true;
+          } else {
+            svmp::raise<svmp::ParseException>(
+                SVMP_HERE, "Unknown CANN Add_row Recruitment XML element '" +
+                               recruitment_name + "'.");
+          }
+        } catch (const std::invalid_argument &) {
+          svmp::raise<svmp::ParseException>(
+              SVMP_HERE, "Invalid numeric value for CANN Add_row Recruitment "
+                         "XML element '" +
+                             recruitment_name + "'.");
+        } catch (const std::out_of_range &) {
+          svmp::raise<svmp::ParseException>(
+              SVMP_HERE, "Out-of-range numeric value for CANN Add_row "
+                         "Recruitment XML element '" +
+                             recruitment_name + "'.");
+        }
+
+        recruitment_item = recruitment_item->NextSiblingElement();
+      }
+
+      if (!has_lower || !has_upper || !has_tau || !has_alpha || !has_beta) {
+        svmp::raise<svmp::ParseException>(
+            SVMP_HERE,
+            "CANN Add_row Recruitment requires Lower_stretch, Upper_stretch, "
+            "Tau, Alpha, and Beta.");
+      }
+      if (!has_quadrature) {
+        row.recruitment_quadrature_points = 32;
+      }
+      row.recruitment_enabled = true;
+      item = item->NextSiblingElement();
+      continue;
+    }
+
     auto value = item->GetText();
 
     if (value == nullptr) {
@@ -1027,6 +1120,65 @@ void CANNRowParameters::set_values(tinyxml2::XMLElement *row_elem) {
     }
 
     item = item->NextSiblingElement();
+  }
+
+  const double kappa = row.dispersion.value();
+  const int invariant = row.invariant_index.value();
+  if (invariant < 1 ||
+      invariant > ArtificialNeuralNetMaterial::NUM_INVARIANTS) {
+    svmp::raise<svmp::ParseException>(
+        SVMP_HERE, "CANN Add_row Invariant_num must be between 1 and " +
+                       std::to_string(
+                           ArtificialNeuralNetMaterial::NUM_INVARIANTS) +
+                       ".");
+  }
+  if (kappa < 0.0 || kappa > 1.0 / 3.0) {
+    svmp::raise<svmp::ParseException>(
+        SVMP_HERE, "CANN Add_row Dispersion must be in [0, 1/3].");
+  }
+  if (kappa != 0.0 &&
+      invariant != 4 && invariant != 8 && invariant != 10 && invariant != 11) {
+    svmp::raise<svmp::ParseException>(
+        SVMP_HERE,
+        "CANN Add_row Dispersion is currently supported only for "
+        "Invariant_num 4 (I4_D1), 8 (I4_D2), 10 (theta fiber strain), and "
+        "11 (z fiber strain).");
+  }
+  if (row.recruitment_enabled) {
+    if (invariant != 4 && invariant != 8 && invariant != 10 &&
+        invariant != 11) {
+      svmp::raise<svmp::ParseException>(
+          SVMP_HERE,
+          "CANN Add_row Recruitment is currently supported only for "
+          "Invariant_num 4 (I4_D1), 8 (I4_D2), 10 (theta fiber strain), and "
+          "11 (z fiber strain).");
+    }
+    if (row.recruitment_lower_stretch <= 0.0) {
+      svmp::raise<svmp::ParseException>(
+          SVMP_HERE, "CANN Add_row Recruitment Lower_stretch must be > 0.");
+    }
+    if (row.recruitment_upper_stretch <= row.recruitment_lower_stretch) {
+      svmp::raise<svmp::ParseException>(
+          SVMP_HERE,
+          "CANN Add_row Recruitment Upper_stretch must be greater than "
+          "Lower_stretch.");
+    }
+    if (row.recruitment_tau <= 0.0) {
+      svmp::raise<svmp::ParseException>(
+          SVMP_HERE, "CANN Add_row Recruitment Tau must be > 0.");
+    }
+    if (row.recruitment_alpha <= 0.0 || row.recruitment_beta <= 0.0) {
+      svmp::raise<svmp::ParseException>(
+          SVMP_HERE,
+          "CANN Add_row Recruitment Alpha and Beta must be > 0.");
+    }
+    if (row.recruitment_quadrature_points < 4 ||
+        row.recruitment_quadrature_points > 128) {
+      svmp::raise<svmp::ParseException>(
+          SVMP_HERE,
+          "CANN Add_row Recruitment Quadrature_points must be between 4 and "
+          "128.");
+    }
   }
 }
 

@@ -163,12 +163,28 @@ SeMaterialPropertiesMapType set_material_props = {
   lDmn.stM.paramTable.invariant_indices.resize(lDmn.stM.paramTable.num_rows);
   lDmn.stM.paramTable.activation_functions.resize(lDmn.stM.paramTable.num_rows,3);
   lDmn.stM.paramTable.weights.resize(lDmn.stM.paramTable.num_rows,3);
+  lDmn.stM.paramTable.row_dispersion.resize(lDmn.stM.paramTable.num_rows);
+  lDmn.stM.paramTable.row_recruitment_enabled.resize(lDmn.stM.paramTable.num_rows);
+  lDmn.stM.paramTable.row_recruitment_lower_stretch.resize(lDmn.stM.paramTable.num_rows);
+  lDmn.stM.paramTable.row_recruitment_upper_stretch.resize(lDmn.stM.paramTable.num_rows);
+  lDmn.stM.paramTable.row_recruitment_tau.resize(lDmn.stM.paramTable.num_rows);
+  lDmn.stM.paramTable.row_recruitment_alpha.resize(lDmn.stM.paramTable.num_rows);
+  lDmn.stM.paramTable.row_recruitment_beta.resize(lDmn.stM.paramTable.num_rows);
+  lDmn.stM.paramTable.row_recruitment_quadrature_points.resize(lDmn.stM.paramTable.num_rows);
 
   // Populate components of the table in stM
   for (size_t i = 0; i < lDmn.stM.paramTable.num_rows; i++)
   {
     // Store invariant index
     lDmn.stM.paramTable.invariant_indices[i] = params.rows[i]->row.invariant_index.value_; 
+    lDmn.stM.paramTable.row_dispersion[i] = params.rows[i]->row.dispersion.value_;
+    lDmn.stM.paramTable.row_recruitment_enabled[i] = params.rows[i]->row.recruitment_enabled ? 1 : 0;
+    lDmn.stM.paramTable.row_recruitment_lower_stretch[i] = params.rows[i]->row.recruitment_lower_stretch;
+    lDmn.stM.paramTable.row_recruitment_upper_stretch[i] = params.rows[i]->row.recruitment_upper_stretch;
+    lDmn.stM.paramTable.row_recruitment_tau[i] = params.rows[i]->row.recruitment_tau;
+    lDmn.stM.paramTable.row_recruitment_alpha[i] = params.rows[i]->row.recruitment_alpha;
+    lDmn.stM.paramTable.row_recruitment_beta[i] = params.rows[i]->row.recruitment_beta;
+    lDmn.stM.paramTable.row_recruitment_quadrature_points[i] = params.rows[i]->row.recruitment_quadrature_points;
 
     // Store activation function and weight values
     for (size_t j = 0; j < 3; j++)

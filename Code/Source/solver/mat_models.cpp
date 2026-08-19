@@ -5,6 +5,7 @@
 
 #include "mat_models.h"
 
+#include "fft.h"
 #include "mat_fun.h"
 #include "utils.h"
 #include "ArtificialNeuralNetMaterial.h"
@@ -102,7 +103,7 @@ void cc_to_voigt(const int nsd, const Tensor4<double>& CC, Array<double>& Dm)
 }
 
 template <int nsd>
-void cc_to_voigt_eigen(const Tensor<nsd>& CC, Matrix<3*(nsd-1)>& Dm)
+void cc_to_voigt_eigen(const Tensor<nsd>& CC, Matrix<2*nsd>& Dm)
 {
   if (nsd == 3) {
     Dm(0,0) = CC(0,0,0,0);
@@ -203,6 +204,25 @@ void voigt_to_cc(const int nsd, const Array<double>& Dm, Tensor4<double>& CC)
 
 
 
+/// @brief Compute additional fiber-reinforcement stress.
+///
+/// Reproduces Fortran 'GETFIBSTRESS' subroutine.
+//
+void compute_fib_stress(const ComMod& com_mod, const CepMod& cep_mod, const fibStrsType& Tfl, double& g)
+{
+  using namespace consts;
+
+  g = 0.0;
+
+  if (utils::btest(Tfl.fType, iBC_std)) {
+    g = Tfl.g;
+  } else if (utils::btest(Tfl.fType, iBC_ustd)) { 
+    Vector<double> gv(1), tv(1);
+    ifft(com_mod, Tfl.gt, gv, tv);
+    g = gv[0];
+  }
+}
+
 
 /**
  * @brief Perform the necessary tensor operations to calculate S_iso (isochoric
@@ -287,12 +307,29 @@ Eigen::Matrix<double, nsd, 1> compute_sheet_normal(const Eigen::Matrix<double, n
   }
 }
 
-template <size_t nsd>
-void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
-                   const dmnType &lDmn, const Matrix<nsd> &F, const int nfd,
-                   const Eigen::Matrix<double, nsd, Eigen::Dynamic> fl,
-                   const double ya_f, const double ya_s, const double ya_n,
-                   Matrix<nsd> &S, Matrix<3 * (nsd - 1)> &Dm, double &Ja) {
+
+/**
+ * @brief Compute 2nd Piola-Kirchhoff stress and material stiffness tensors
+ * including both dilational and isochoric components.
+ *
+ * Reproduces the Fortran 'GETPK2CC' subroutine.
+ *
+ * @param[in] com_mod Object containing global common variables.
+ * @param[in] cep_mod Object containing electrophysiology-specific common variables.
+ * @param[in] lDmn Domain object.
+ * @param[in] F Deformation gradient tensor.
+ * @param[in] nfd Number of fiber directions.
+ * @param[in] fl Fiber directions.
+ * @param[in] ya Electrophysiology active stress.
+ * @param[out] S 2nd Piola-Kirchhoff stress tensor (modified in place).
+ * @param[out] Dm Material stiffness tensor (modified in place).
+ * @param[out] Ja Jacobian for active strain
+ * @return None, but modifies S, Dm, and Ja in place.
+ */
+template<size_t nsd>
+void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Matrix<nsd>& F, const int nfd,
+    const Eigen::Matrix<double, nsd, Eigen::Dynamic> fl, const double ya, Matrix<nsd>& S, Matrix<2*nsd>& Dm, double& Ja)
+{
   using namespace consts;
   using namespace mat_fun;
   using namespace utils;
@@ -319,19 +356,22 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
   double nd = static_cast<double>(nsd);
   double Kp = stM.Kpen;
 
-  // Active stress from active stress models, already distributed among the
-  // fiber, sheet and sheet-normal directions by the active stress model.
-  double Tfa = ya_f;  // Fiber direction
-  double Tsa = ya_s;  // Sheet direction
-  double Tna = ya_n;  // Sheet-normal direction
+  // Fiber-reinforced stress - compute total active stress
+  double Ta = 0.0;
+  compute_fib_stress(com_mod, cep_mod, stM.Tf, Ta);
+
+  // Distribute total active stress among fiber directions
+  double Tfa = stM.Tf.eta_f * Ta;  // Fiber direction
+  double Tsa = stM.Tf.eta_s * Ta;  // Sheet direction
+  double Tna = stM.Tf.eta_n * Ta;  // Sheet-normal direction
 
   // Validate directional distribution is supported for this constitutive model
   // Only Guccione, HO, and HO-ma models support sheet and sheet-normal stress contributions
-  bool supports_directional_distribution = (stM.isoType == ConstitutiveModelType::stIso_Gucci ||
+  bool supports_directional_distribution = (stM.isoType == ConstitutiveModelType::stIso_Gucci || 
                                             stM.isoType == ConstitutiveModelType::stIso_HO ||
                                             stM.isoType == ConstitutiveModelType::stIso_HO_ma);
-
-  if (!supports_directional_distribution && (ya_s > 0.0 || ya_n > 0.0)) {
+  
+  if (!supports_directional_distribution && (stM.Tf.eta_s > 0.0 || stM.Tf.eta_n > 0.0)) {
     throw std::runtime_error("Directional distribution of active stress (eta_s > 0 or eta_n > 0) "
       "is only supported for Guccione, Holzapfel-Ogden (HO), and Holzapfel-Ogden Modified Anisotropy (HO-ma) models. "
       "Current model does not support sheet or sheet-normal stress contributions. "
@@ -356,6 +396,11 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
     Hss = fib_dir2 * fib_dir2.transpose();
   } else {
     Hss = Matrix<nsd>::Zero();
+  }
+
+  // Electromechanics coupling - active stress
+  if (cep_mod.cem.aStress) {
+    Tfa = Tfa + ya;
   }
 
   // Electromechanics coupling - active strain
@@ -435,7 +480,6 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
     case ConstitutiveModelType::stIso_nHook: {
       // Compute fictious stress and elasticity tensor
       Matrix<nsd> S_bar = 2.0 * stM.C10 * Idm;
-
       Tensor<nsd> CC_bar; 
       CC_bar.setZero();
 
@@ -780,29 +824,90 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
       // Reading parameter table
       auto &CANNModel = stM.paramTable;
 
-      double psi,dpsi[9],ddpsi[9];
-      double Inv[9] = {0,0,0,0,0,0,0,0,0};
-      std::array<Matrix<nsd>, 9> dInv;
-      std::array<Tensor<nsd>,9> ddInv;
+      double psi = 0.0;
+      double dpsi[ArtificialNeuralNetMaterial::NUM_INVARIANTS];
+      double ddpsi[ArtificialNeuralNetMaterial::NUM_INVARIANTS];
+      double Inv[ArtificialNeuralNetMaterial::NUM_INVARIANTS] = {};
+      std::array<Matrix<nsd>, ArtificialNeuralNetMaterial::NUM_INVARIANTS> dInv;
+      std::array<Tensor<nsd>, ArtificialNeuralNetMaterial::NUM_INVARIANTS> ddInv;
       Matrix<nsd> N1;
 
-      // Compute and store invariants and derivatives wrt C in array of matrices/tensors
-      CANNModel.computeInvariantsAndDerivatives<nsd>(C, fl, nfd, J2d, J4d, Ci, Idm, Tfa, N1, psi, Inv, dInv, ddInv);
+      if (CANNModel.num_rows > 0) {
+        // Compute and store invariants and derivatives wrt C in array of matrices/tensors
+        CANNModel.computeInvariantsAndDerivatives<nsd>(C, fl, nfd, J2d, J4d, Ci, Idm, Tfa, stM.kap, N1, psi, Inv, dInv, ddInv);
 
-      // Strain energy function and derivatives
-      CANNModel.evaluate(Inv, psi, dpsi, ddpsi);
+        bool has_row_transform = false;
+        for (int row = 0; row < CANNModel.num_rows; ++row) {
+          if (CANNModel.rowHasDispersion(row) || CANNModel.rowHasRecruitment(row)) {
+            has_row_transform = true;
+            break;
+          }
+        }
 
-      for (int i = 0; i < 9; i++) {
-        S += 2*dInv[i]*dpsi[i];
-      }
+        if (!has_row_transform) {
+          // Strain energy function and derivatives
+          CANNModel.evaluate(Inv, psi, dpsi, ddpsi);
 
-      // Fiber reinforcement/active stress
-      S += Tfa*N1;
-      
-      // Stiffness Tensor
-      for(int x = 0; x < 9; x++){
-        CC += 4*dpsi[x]*ddInv[x];
-        CC += 4*ddpsi[x]*dyadic_product<nsd>(dInv[x],dInv[x]);
+          for (int i = 0; i < ArtificialNeuralNetMaterial::NUM_INVARIANTS; i++) {
+            S += 2*dInv[i]*dpsi[i];
+          }
+
+          // Stiffness Tensor
+          for(int x = 0; x < ArtificialNeuralNetMaterial::NUM_INVARIANTS; x++){
+            CC += 4*dpsi[x]*ddInv[x];
+            CC += 4*ddpsi[x]*dyadic_product<nsd>(dInv[x],dInv[x]);
+          }
+        } else {
+          const double ref[ArtificialNeuralNetMaterial::NUM_INVARIANTS] = {3, 3, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+          for (int row = 0; row < CANNModel.num_rows; ++row) {
+            const int kInv = CANNModel.invariant_indices(row);
+            const int inv = kInv - 1;
+            const int kf0 = CANNModel.activation_functions(row, 0);
+            const int kf1 = CANNModel.activation_functions(row, 1);
+            const int kf2 = CANNModel.activation_functions(row, 2);
+            const double W0 = CANNModel.weights(row, 0);
+            const double W1 = CANNModel.weights(row, 1);
+            const double W2 = CANNModel.weights(row, 2);
+            const double kappa = CANNModel.rowHasDispersion(row) ? CANNModel.row_dispersion(row) : 0.0;
+
+            double xInv = Inv[inv] - ref[inv];
+            Matrix<nsd> dxInv = dInv[inv];
+            Tensor<nsd> ddxInv = ddInv[inv];
+
+            const bool green_strain_fiber_transform = (kInv == 10 || kInv == 11) &&
+                (CANNModel.rowHasDispersion(row) || CANNModel.rowHasRecruitment(row));
+            if (green_strain_fiber_transform) {
+              xInv *= 2.0;
+              dxInv *= 2.0;
+              ddxInv = 2.0 * ddxInv;
+            }
+
+            if (kappa != 0.0) {
+              xInv = kappa * (Inv[0] - ref[0]) + (1.0 - 3.0 * kappa) * xInv;
+              dxInv = kappa * dInv[0] + (1.0 - 3.0 * kappa) * dInv[inv];
+              ddxInv = kappa * ddInv[0] + (1.0 - 3.0 * kappa) * ddInv[inv];
+              if (green_strain_fiber_transform) {
+                dxInv = kappa * dInv[0] + (1.0 - 3.0 * kappa) * 2.0 * dInv[inv];
+                ddxInv = kappa * ddInv[0] + (1.0 - 3.0 * kappa) * 2.0 * ddInv[inv];
+              }
+            }
+
+            if (CANNModel.rowHasRecruitment(row)) {
+              CANNModel.recruitedFiberInput<nsd>(row, xInv, dxInv, ddxInv, xInv, dxInv, ddxInv);
+            }
+
+            double row_psi = 0.0, row_dpsi = 0.0, row_ddpsi = 0.0;
+            CANNModel.uCANN_scalar(xInv, kf0, kf1, kf2, W0, W1, W2,
+                row_psi, row_dpsi, row_ddpsi);
+            psi += row_psi;
+            S += 2.0 * row_dpsi * dxInv;
+            CC += 4.0 * row_dpsi * ddxInv;
+            CC += 4.0 * row_ddpsi * dyadic_product<nsd>(dxInv, dxInv);
+          }
+        }
+
+        // Fiber reinforcement/active stress
+        S += Tfa*N1;
       }
 
     } break;
@@ -823,7 +928,7 @@ void compute_pk2cc(const ComMod &com_mod, const CepMod &cep_mod,
  * 
  */
 void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& lDmn, const Array<double>& F, const int nfd,
-    const Array<double>& fl, const double ya_f, const double ya_s, const double ya_n, Array<double>& S, Array<double>& Dm, double& Ja)
+    const Array<double>& fl, const double ya, Array<double>& S, Array<double>& Dm, double& Ja)
 {
     // Number of spatial dimensions
     int nsd = com_mod.nsd;
@@ -841,14 +946,14 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
 
         // Initialize stress and elasticity tensors
         Eigen::Matrix2d S_2D = Eigen::Matrix2d::Zero();
-        Eigen::Matrix3d Dm_2D = Eigen::Matrix3d::Zero();
+        Eigen::Matrix4d Dm_2D = Eigen::Matrix4d::Zero();
 
         // Call templated function
-        compute_pk2cc<2>(com_mod, cep_mod, lDmn, F_2D, nfd, fl_2D, ya_f, ya_s, ya_n, S_2D, Dm_2D, Ja);
+        compute_pk2cc<2>(com_mod, cep_mod, lDmn, F_2D, nfd, fl_2D, ya, S_2D, Dm_2D, Ja);
 
         // Copy results back
         mat_fun::convert_to_array(S_2D, S);
-        mat_fun::copy_Dm(Dm_2D, Dm);
+        mat_fun::copy_Dm(Dm_2D, Dm, 4, 4);
 
     } else if (nsd == 3) {
         // Copy deformation gradient to Eigen matrix
@@ -868,11 +973,11 @@ void compute_pk2cc(const ComMod& com_mod, const CepMod& cep_mod, const dmnType& 
         Dm_3D.setZero();
 
         // Call templated function
-        compute_pk2cc<3>(com_mod, cep_mod, lDmn, F_3D, nfd, fl_3D, ya_f, ya_s, ya_n, S_3D, Dm_3D, Ja);
+        compute_pk2cc<3>(com_mod, cep_mod, lDmn, F_3D, nfd, fl_3D, ya, S_3D, Dm_3D, Ja);
 
         // Copy results back
         mat_fun::convert_to_array(S_3D, S);
-        mat_fun::copy_Dm(Dm_3D, Dm);
+        mat_fun::copy_Dm(Dm_3D, Dm, 6, 6);
     }
 }
 
