@@ -9,7 +9,7 @@
     <Spectral_radius_of_infinite_time_step> 0.5 </Spectral_radius_of_infinite_time_step>
     <Searched_file_name_to_trigger_stop> STOP_SIM </Searched_file_name_to_trigger_stop>
     <Save_results_to_VTK_format> true </Save_results_to_VTK_format>
-    <Name_prefix_of_saved_VTK_files> result_NH </Name_prefix_of_saved_VTK_files>
+    <Name_prefix_of_saved_VTK_files> result_CANN_NH </Name_prefix_of_saved_VTK_files>
     <Increment_in_saving_VTK_files> 1 </Increment_in_saving_VTK_files>
     <Start_saving_after_time_step> 1 </Start_saving_after_time_step>
     <Increment_in_saving_restart_files> 10 </Increment_in_saving_restart_files>
@@ -41,16 +41,19 @@
     <Min_iterations> 1 </Min_iterations>
     <Max_iterations> 12 </Max_iterations>
     <Tolerance> 1e-4 </Tolerance>
-
     <Backflow_stabilization_coefficient> 0.2 </Backflow_stabilization_coefficient>
     <Density> 0.001 </Density>
-    <!-- Matches CANN I1 row weight 5.0e4: C10 = E / (4 * (1 + nu)). -->
     <Elasticity_modulus> 2.9e5 </Elasticity_modulus>
     <Poisson_ratio> 0.45 </Poisson_ratio>
-    <Constitutive_model type="neoHookean"> </Constitutive_model>
+    <Constitutive_model type="CANN">
+      <Add_row row_name="nh_I1">
+        <Invariant_num> 1 </Invariant_num>
+        <Activation_functions> (1, 1, 1) </Activation_functions>
+        <Weights> (1.0, 1.0, 5.0e4) </Weights>
+      </Add_row>
+    </Constitutive_model>
     <Dilational_penalty_model> ST91 </Dilational_penalty_model>
     <Penalty_parameter> 5e4 </Penalty_parameter>
-
 
     <Output type="Spatial" >
       <Displacement> true </Displacement>
@@ -66,8 +69,8 @@
       <Linear_algebra type="fsils" >
         <Preconditioner> fsils </Preconditioner>
       </Linear_algebra>
-	      <Tolerance> 1e-3 </Tolerance>
-	      <Max_iterations> 500 </Max_iterations>
+      <Tolerance> 1e-3 </Tolerance>
+      <Max_iterations> 500 </Max_iterations>
     </LS>
   <Add_BC name="start" >
     <Type> Dir </Type>

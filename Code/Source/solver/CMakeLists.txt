@@ -389,6 +389,14 @@ if(ENABLE_UNIT_TEST)
 
   # include source files (same as what svMultiPhysics does except for main.cpp)
   add_executable(run_all_unit_tests ${CSRCS})
+
+  # The fetched googletest headers must be found before any other copy of gtest
+  # in the include path (e.g. a conda environment pulled in via VTK's
+  # dependencies); a header/library version mismatch crashes test registration.
+  target_include_directories(run_all_unit_tests BEFORE PRIVATE
+    ${googletest_SOURCE_DIR}/googletest/include
+    ${googletest_SOURCE_DIR}/googlemock/include
+  )
   
   if(USE_TRILINOS)
     target_link_libraries(run_all_unit_tests ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES})
