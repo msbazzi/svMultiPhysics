@@ -149,6 +149,18 @@ endif()
 
 include(${VTK_USE_FILE})
 
+# Qt 6.9's FindWrapOpenGL (reached through VTK's Qt dependency) links the
+# obsolete AGL framework even when it does not exist; macOS SDKs no longer
+# ship AGL, which breaks the link. Drop it from the imported target.
+if(APPLE AND TARGET WrapOpenGL::WrapOpenGL)
+  get_target_property(_wrap_opengl_libs WrapOpenGL::WrapOpenGL INTERFACE_LINK_LIBRARIES)
+  if(_wrap_opengl_libs)
+    list(FILTER _wrap_opengl_libs EXCLUDE REGEX "AGL")
+    set_target_properties(WrapOpenGL::WrapOpenGL PROPERTIES
+      INTERFACE_LINK_LIBRARIES "${_wrap_opengl_libs}")
+  endif()
+endif()
+
 set(lib ${SV_LIB_SVFSI_NAME})
 
 set(CSRCS 
