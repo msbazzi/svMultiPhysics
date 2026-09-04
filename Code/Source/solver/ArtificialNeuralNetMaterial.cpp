@@ -135,7 +135,7 @@ void ArtificialNeuralNetMaterial::uCANN_h2(const double x, const int kf, const d
     } else if (kf == 3) {
         f = -std::log(1 - W * x);
         df = W / (1 - W * x);
-        ddf = -W * W / ((1 - W * x) * (1 - W * x));
+        ddf = W * W / ((1 - W * x) * (1 - W * x));
     }
 }
 

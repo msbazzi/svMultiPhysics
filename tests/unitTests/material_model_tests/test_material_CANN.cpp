@@ -124,6 +124,20 @@ TEST(CANNLegacyMaterialTest, LegacyCubicH1StressAndTangentMatchFiniteDifference)
     material.testMaterialElasticityConsistentWithPK2Stress(F, 5e-3, 1e-6, 1e-6, false);
 }
 
+TEST(CANNLegacyMaterialTest, LogBarrierOutputCurvatureIsPositive)
+{
+    ArtificialNeuralNetMaterial cann;
+    double psi = 0.0;
+    double dpsi = 0.0;
+    double ddpsi = 0.0;
+    cann.uCANN_scalar(0.2, 1, 1, 3, 1.0, 0.5, 2.0, psi, dpsi, ddpsi);
+
+    EXPECT_NEAR(psi, -2.0 * std::log(0.9), 1.0e-12);
+    EXPECT_NEAR(dpsi, 2.0 * 0.5 / 0.9, 1.0e-12);
+    EXPECT_NEAR(ddpsi, 2.0 * 0.25 / (0.9 * 0.9), 1.0e-12);
+    EXPECT_GT(ddpsi, 0.0);
+}
+
 TEST(CANNLegacyMaterialTest, LegacyGreenStrainInputsProduceExpectedStress)
 {
     const auto F = legacy_test_F();
