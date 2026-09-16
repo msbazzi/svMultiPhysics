@@ -303,7 +303,10 @@ std::array<Matrix<nsd>,NUM_INVARIANTS>& dInv, std::array<Tensor<nsd>,NUM_INVARIA
     }
 
     Matrix<nsd> dInv1 = -Inv[0]/3 * Ci + J2d * Idm;
-    Matrix<nsd> dInv2 = (C2.trace()/3)*Ci + Inv[0]*dInv1 + J4d*C;
+    // I2bar = 0.5 * (I1bar^2 - J^(-4/3) tr(C^2)).
+    // The derivative of the last term has a negative C contribution.
+    const double scaled_trace_C2 = J4d * C2.trace();
+    Matrix<nsd> dInv2 = (scaled_trace_C2/3)*Ci + Inv[0]*dInv1 - J4d*C;
     Matrix<nsd> dInv3 = Inv[2]*Ci;
     Matrix<nsd> dInv4 = -Inv[3]/3*Ci + J2d*N1_disp;
     Matrix<nsd> dInv5 = J4d*(N1_disp*C + C*N1_disp) - Inv[4]/3*Ci;
@@ -370,9 +373,11 @@ std::array<Matrix<nsd>,NUM_INVARIANTS>& dInv, std::array<Tensor<nsd>,NUM_INVARIA
     Matrix<nsd> dJ4ddC = -2.0/3.0 * J4d * Ci;
 
     Tensor<nsd> ddInv1 = (-1.0/3.0)*(dyadic_product<nsd>(dInv1,Ci) + Inv[0]*dCidC + J2d*dyadic_product(Ci,Idm));
-    Tensor<nsd> ddInv2 = dyadic_product<nsd>(dInv1,dInv1) + Inv[0]*ddInv1 + (1.0/3.0)*C2.trace()*dCidC 
-                        + (1.0/3.0)*dyadic_product<nsd>((C2.trace()*dJ4ddC + 2*J4d*C),Ci) 
-                        + dyadic_product<nsd>(dJ4ddC,C) - J4d*fourth_order_identity<nsd>();
+    Tensor<nsd> ddInv2 = dyadic_product<nsd>(dInv1,dInv1) + Inv[0]*ddInv1
+                        + (scaled_trace_C2/3.0)*dCidC
+                        - (2.0*scaled_trace_C2/9.0)*dyadic_product<nsd>(Ci,Ci)
+                        + (2.0*J4d/3.0)*(dyadic_product<nsd>(Ci,C) + dyadic_product<nsd>(C,Ci))
+                        - J4d*fourth_order_identity<nsd>();
     Tensor<nsd> ddInv3 = dyadic_product<nsd>(dInv3,Ci) + Inv[2]*dCidC;
     Tensor<nsd> ddInv4 = (-1.0/3.0)*(dyadic_product<nsd>(dInv4,Ci) + J2d*dyadic_product<nsd>(Ci,N1_disp) + Inv[3]*dCidC);
     Matrix<nsd> sum1 = (N1_disp*C + C*N1_disp);
