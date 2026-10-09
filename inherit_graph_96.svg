@@ -11,9 +11,9 @@
 <!-- Node0 -->
 <g id="Node000000" class="node">
 <title>Node0</title>
-<g id="a_Node000000"><a xlink:href="structsvmp_1_1_f_e_1_1_quadrature_weight_tag.html" target="_top" xlink:title="Tag type for quadrature weights.">
+<g id="a_Node000000"><a xlink:href="structsvmp_1_1_f_e_1_1math_1_1_dense_l_u_solver.html" target="_top" xlink:title="LU factorization of a dense square matrix with a cached pivot summary.">
 <polygon fill="white" stroke="#666666" points="173,-19 0,-19 0,0 173,0 173,-19"/>
-<text text-anchor="middle" x="86.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00">svmp::FE::QuadratureWeightTag</text>
+<text text-anchor="middle" x="86.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00">svmp::FE::math::DenseLUSolver</text>
 </a>
 </g>
 </g>
