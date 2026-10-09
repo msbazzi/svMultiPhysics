@@ -1114,6 +1114,13 @@ void CANNRowParameters::set_values(tinyxml2::XMLElement *row_elem) {
     item = item->NextSiblingElement();
   }
 
+  const auto& act = row.activation_functions.value();
+  if (act.size() != 3 || act[0] < 1 || act[0] > 3 || act[1] < 1 ||
+      act[1] > 3 || act[2] < 1 || act[2] > 4) {
+    svmp::raise<svmp::ParseException>("CANN Add_row Activation_functions must be three integers: "
+        "layer 0 and layer 1 in {1, 2, 3}, layer 2 in {1, 2, 3, 4}.");
+  }
+
   const double kappa = row.dispersion.value();
   const int invariant = row.invariant_index.value();
   if (invariant < 1 ||

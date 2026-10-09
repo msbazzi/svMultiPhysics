@@ -17,6 +17,9 @@
 #include "utils.h"
 #include "DebugMsg.h"
 
+#include <algorithm>
+#include <cstdlib>
+
 namespace struct_ns {
 
 void b_struct_2d(const ComMod& com_mod, const int eNoN, const double w, const Vector<double>& N, 
@@ -449,10 +452,24 @@ void struct_2d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
   // Elastic + Viscous stresses
   S = S + Svis;
 
-  // Prestress
+  // Prestress: accumulate only the stress induced by this step's
+  // deformation (see struct_3d).
   pSl(0) = S(0,0);
   pSl(1) = S(1,1);
   pSl(2) = S(0,1);
+
+  if (com_mod.pstEq) {
+    Array<double> Iden(2,2), S_ref(2,2), Dm_ref(3,3);
+    Iden = 0.0;
+    Iden(0,0) = 1.0;
+    Iden(1,1) = 1.0;
+    double Ja_ref;
+    mat_models::compute_pk2cc(com_mod, cep_mod, dmn, Iden, nFn, fN, 0.0, 0.0,
+                              0.0, S_ref, Dm_ref, Ja_ref);
+    pSl(0) -= S_ref(0,0);
+    pSl(1) -= S_ref(1,1);
+    pSl(2) -= S_ref(0,1);
+  }
 
   // Total 2nd Piola-Kirchhoff stress
   S = S + S0;
@@ -676,13 +693,51 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
   dmsg << "S: " << S;
   #endif
 
-  // Prestress
+  // Prestress: accumulate only the stress induced by this step's
+  // deformation. Materials that are not stress-free at F = I (e.g. CANN rows
+  // with nonzero slope at the reference) would otherwise add S(I) to pS0 on
+  // every step because the displacement is reset each step.
   pSl(0) = S(0,0);
   pSl(1) = S(1,1);
   pSl(2) = S(2,2);
   pSl(3) = S(0,1);
   pSl(4) = S(1,2);
   pSl(5) = S(2,0);
+
+  if (com_mod.pstEq) {
+    Array<double> Iden(3,3), S_ref(3,3), Dm_ref(6,6);
+    Iden = 0.0;
+    Iden(0,0) = 1.0;
+    Iden(1,1) = 1.0;
+    Iden(2,2) = 1.0;
+    double Ja_ref;
+    mat_models::compute_pk2cc(com_mod, cep_mod, dmn, Iden, nFn, fN, 0.0, 0.0,
+                              0.0, S_ref, Dm_ref, Ja_ref);
+    pSl(0) -= S_ref(0,0);
+    pSl(1) -= S_ref(1,1);
+    pSl(2) -= S_ref(2,2);
+    pSl(3) -= S_ref(0,1);
+    pSl(4) -= S_ref(1,2);
+    pSl(5) -= S_ref(2,0);
+
+    // Phase the reference stress S(I) into the residual over a ramp time set by
+    // the environment variable SV_PRESTRESS_REF_RAMP_TIME (seconds; unset or 0 =
+    // off). Without it, a material that is not stress-free at F = I must be
+    // equilibrated in one Newton solve at step 1. pSl is unchanged, so the
+    // converged prestress is the same.
+    static const double ref_ramp_time = [] {
+      const char* v = std::getenv("SV_PRESTRESS_REF_RAMP_TIME");
+      return v ? std::atof(v) : 0.0;
+    }();
+    if (ref_ramp_time > 0.0) {
+      const double r = std::min(1.0, com_mod.time / ref_ramp_time);
+      for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 3; b++) {
+          S(a,b) -= (1.0 - r) * S_ref(a,b);
+        }
+      }
+    }
+  }
 
   // Total 2nd Piola-Kirchhoff stress
   S += S0;

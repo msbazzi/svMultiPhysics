@@ -73,6 +73,7 @@ void Simulation::set_module_parameters()
   com_mod.stFileRepl = general.overwrite_restart_file.value();
   com_mod.stFileName = chnl_mod.appPath + general.restart_file_name.value();
   com_mod.stFileIncr = general.increment_in_saving_restart_files.value();
+  com_mod.bin2VTK = general.convert_bin_to_vtk_format.value();
   com_mod.rmsh.isReqd = general.simulation_requires_remeshing.value();
 
   auto& precomp_sol = parameters.precomputed_solution_parameters;

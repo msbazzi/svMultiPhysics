@@ -136,6 +136,13 @@ void ArtificialNeuralNetMaterial::uCANN_h2(const double x, const int kf, const d
         f = -std::log(1 - W * x);
         df = W / (1 - W * x);
         ddf = W * W / ((1 - W * x) * (1 - W * x));
+    } else if (kf == 4) {
+        // Exponential with the linear term removed: f(0) = f'(0) = 0, so the
+        // row is stress-free at the reference state.
+        const double expWx = std::exp(W * x);
+        f = expWx - 1 - W * x;
+        df = W * (expWx - 1);
+        ddf = W * W * expWx;
     }
 }
 

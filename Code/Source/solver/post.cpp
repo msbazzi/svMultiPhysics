@@ -15,6 +15,9 @@
 #include "utils.h"
 #include "vtk_xml.h"
 #include <math.h>
+#include <cstdlib>
+#include <iomanip>
+#include <sstream>
 
 namespace post {
 
@@ -1114,13 +1117,14 @@ void ppbin2vtk(Simulation* simulation)
   auto saveName = com_mod.saveName;
   auto stFileName = com_mod.stFileName;
 
-  for (int iTS = 0; iTS < com_mod.nTS; iTS++) {
+  for (int iTS = 0; iTS <= com_mod.nTS; iTS++) {
     if (iTS % stFileIncr == 0) {
-      auto stmp = std::to_string(iTS);
+      // Match the zero padding used by write_restart() and write_vtus().
+      std::ostringstream ss;
+      ss << std::setw(3) << std::setfill('0') << iTS;
+      auto stmp = ss.str();
       std::string fName;
       bool flag = false;
-      //WRITE(stmp,'(I3.3)') iTS
-      //if (iTS .GE. 1000) stmp = STR(iTS)
 
       // Ignore if vtu file already exists
       if (cm.mas(cm_mod)) {
@@ -1175,8 +1179,11 @@ void ppbin2vtk(Simulation* simulation)
   }
 
   finalize(simulation);
-  
+
   MPI_Finalize();
+
+  // Conversion only: do not fall through into the time-stepping loop.
+  std::exit(0);
 }
 
 //----------
