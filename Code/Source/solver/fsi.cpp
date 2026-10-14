@@ -4,6 +4,7 @@
 #include "fsi.h"
 
 #include "all_fun.h"
+#include "prestrain.h"
 #include "consts.h"
 #include "fluid.h"
 #include "fs.h"
@@ -102,6 +103,14 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
     ya_l_s = 0.0;
     ya_l_n = 0.0;
 
+    if (lM.fN.size() != 0) {
+      for (int iFn = 0; iFn < nFn; iFn++) {
+        for (int i = 0; i < nsd; i++) {
+          fN(i,iFn) = lM.fN(i+nsd*iFn,e);
+        }
+      }
+    }
+
     for (int a = 0; a < eNoN; a++) {
       int Ac = lM.IEN(a,e);
       ptr(a) = Ac;
@@ -114,14 +123,6 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
         al(i,a) = Ag(i,Ac);
         yl(i,a) = Yg(i,Ac);
         dl(i,a) = Dg(i,Ac);
-      }
-
-      if (lM.fN.size() != 0) {
-        for (int iFn = 0; iFn < nFn; iFn++) {
-          for (int i = 0; i < nsd; i++) {
-            fN(i,iFn) = lM.fN(i+nsd*iFn,e);
-          }
-        }
       }
 
       if (pS0.size() != 0) {
@@ -157,6 +158,9 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
     Array<double> xql(nsd,fs_1[1].eNoN);
     Array<double> Nqx(nsd,fs_1[1].eNoN);
 
+    const bool prestrained = (lM.F0.size() != 0) &&
+        (cPhys == Equation_struct || cPhys == Equation_ustruct);
+
     xwl = xl;
 
     for (int i = 0; i < xql.nrows(); i++) {
@@ -186,7 +190,11 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
         }
       }
 
-      if (g == 0 || !fs_1[0].lShpF) {
+      // Shape function gradients and the viscous response are constant
+      // within linear triangles and tetrahedra.
+      const bool recompute_visc = (g == 0 || !fs_1[0].lShpF);
+
+      if (recompute_visc) {
         auto Nx = fs_1[0].Nx.rslice(g);
         nn::gnn(fs_1[0].eNoN, nsd, nsd, Nx, xwl, Nwx, Jac, ksix);
         if (utils::is_zero(Jac)) {
@@ -195,6 +203,12 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
 
         auto Nxx = fs_1[0].Nxx.rslice(g);
         nn::gn_nxx(l, fs_1[0].eNoN, nsd, nsd, Nx, Nxx, xwl, Nwx, Nwxx);
+
+        // A prestrained solid element is integrated on its stress-free configuration (see prestrain.h).
+        if (prestrained) {
+          Jac /= prestrain::pull_back(lM, e, g, Nwx);
+          prestrain::pull_back_fibers(lM, e, g, fN);
+        }
       }
 
       double w = fs_1[0].w(g) * Jac;
@@ -218,23 +232,25 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
 
           case Equation_struct: {
             auto N0 = fs_1[0].N.col(g);
+            const auto F0 = prestrain::deformation_gradient<3>(lM, e, g);
             struct_ns::struct_3d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0,
-                                 Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l_f,
-                                 ya_l_s, ya_l_n, lR, lK);
+                                 Nwx, al, yl, dl, F0, bfl, fN, pS0l, pSl, ya_l_f,
+                                 ya_l_s, ya_l_n, lR, lK, recompute_visc);
           } break;
           case Equation_lElas:
             throw std::runtime_error("[construct_fsi] LELAS3D not implemented");
             //CALL LELAS3D(fs(1).eNoN, w, fs(1).N(:,g), Nwx, al, dl, bfl, pS0l, pSl, lR, lK)
           break;
 
-          case Equation_ustruct:
+          case Equation_ustruct: {
             auto N0 = fs_1[0].N.col(g);
             auto N1 = fs_1[1].N.col(g);
+            const auto F0 = prestrain::deformation_gradient<3>(lM, e, g);
             ustruct::ustruct_3d_m(com_mod, cep_mod, vmsStab, fs_1[0].eNoN,
                                   fs_1[1].eNoN, nFn, w, Jac, N0, N1, Nwx, al,
-                                  yl, dl, bfl, fN, ya_l_f, ya_l_s, ya_l_n, lR,
-                                  lK, lKd);
-            break;
+                                  yl, dl, F0, bfl, fN, ya_l_f, ya_l_s, ya_l_n, lR,
+                                  lK, lKd, recompute_visc);
+          } break;
           }
 
       } else if (nsd == 2) {
@@ -254,9 +270,10 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
 
           case Equation_struct: {
             auto N0 = fs_1[0].N.col(g);
+            const auto F0 = prestrain::deformation_gradient<2>(lM, e, g);
             struct_ns::struct_2d(com_mod, cep_mod, fs_1[0].eNoN, nFn, w, N0,
-                                 Nwx, al, yl, dl, bfl, fN, pS0l, pSl, ya_l_f,
-                                 ya_l_s, ya_l_n, lR, lK);
+                                 Nwx, al, yl, dl, F0, bfl, fN, pS0l, pSl, ya_l_f,
+                                 ya_l_s, ya_l_n, lR, lK, recompute_visc);
           } break;
 
           case Equation_ustruct:
@@ -285,6 +302,9 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
         if (utils::is_zero(Jac)) {
            throw std::runtime_error("[construct_fsi] Jacobian for element " + std::to_string(e) + " is < 0.");
         }
+        if (prestrained) {
+          prestrain::pull_back(lM, e, g, Nwx);
+        }
       }
 
       if (g == 0 || !fs_2[1].lShpF) {
@@ -293,6 +313,9 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
 
         if (utils::is_zero(Jac)) {
            throw std::runtime_error("[construct_fsi] Jacobian for element " + std::to_string(e) + " is < 0.");
+        }
+        if (prestrained) {
+          Jac /= prestrain::pull_back(lM, e, g, Nqx);
         }
       }
       double w = fs_2[1].w(g) * Jac;
@@ -313,11 +336,12 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
             fluid::fluid_3d_c(com_mod, vmsStab, fs_2[0].eNoN, fs_2[1].eNoN, w, ksix, N0, N1, Nwx, Nqx, Nwxx, al, yl, bfl, lR, lK, 0.0, urisFactorTotal, urisValveVelTermTotal);
           } break;
 
-          case Equation_ustruct:
+          case Equation_ustruct: {
             auto N0 = fs_2[0].N.col(g);
             auto N1 = fs_2[1].N.col(g);
-            ustruct::ustruct_3d_c(com_mod, cep_mod, vmsStab, fs_2[0].eNoN, fs_2[1].eNoN, w, Jac, N0, N1, Nwx, Nqx, al, yl, dl, bfl, lR, lK, lKd);
-          break;
+            const auto F0 = prestrain::deformation_gradient<3>(lM, e, g);
+            ustruct::ustruct_3d_c(com_mod, cep_mod, vmsStab, fs_2[0].eNoN, fs_2[1].eNoN, w, Jac, N0, N1, Nwx, Nqx, al, yl, dl, F0, bfl, lR, lK, lKd);
+          } break;
         }
 
       } else if (nsd == 2) {

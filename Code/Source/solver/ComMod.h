@@ -22,7 +22,7 @@
 #include "SolutionStates.h"
 #include "Timer.h"
 #include "Vector.h"
-#include "active_stress.h"
+#include "ActiveStress.h"
 
 #include "DebugMsg.h"
 
@@ -387,7 +387,7 @@ class dmnType
 
     // General physical properties such as density, elastic modulus...
     // FIX davep double prop[maxNProp] ;
-    std::map<consts::PhysicalProperyType,double> prop;
+    std::map<consts::PhysicalPropertyType,double> prop;
     //double prop[consts::maxNProp];
 
     // Electrophysiology model
@@ -790,6 +790,10 @@ class cplBCType
 {
   public:
     cplBCType();
+
+    /// @brief Index of the equation that this condition is associated with.
+    unsigned int equationIndex = 0;
+
     /// @brief Is multi-domain active
     bool coupled = false;
 
@@ -823,6 +827,19 @@ class cplBCType
     /// @brief Implicit/Explicit/Semi-implicit schemes
     consts::CplBCType schm = consts::CplBCType::cplBC_NA;
     //int schm = cplBC_NA;
+
+    /// @brief Absolute floor on the flow-rate perturbation used to
+    /// finite-difference the coupled-BC tangent dP/dQ in
+    /// \c set_bc::calc_der_cpl_bc. This is a dimensional quantity, so it must
+    /// be set consistently with the unit system of the simulation.
+    double finite_difference_absolute_perturbation = 1.0e-7;
+
+    /// @brief Flow-rate perturbation used to finite-difference the coupled-BC
+    /// tangent dP/dQ in \c set_bc::calc_der_cpl_bc, relative to the RMS coupled
+    /// flow rate. The perturbation actually applied is
+    /// \c max(rms(Q)*finite_difference_relative_perturbation,
+    /// \c finite_difference_absolute_perturbation).
+    double finite_difference_relative_perturbation = 1.0e-5;
 
     /// @brief Path to the 0D code binary file
     std::string binPath;
@@ -1011,6 +1028,11 @@ class mshType
     /// @brief Fiber orientations stored at the element level - used for
     /// electrophysiology and solid mechanics
     Array<double> fN;
+
+    /// @brief Deformation gradient from the stress-free configuration of a
+    /// prestrained body to this mesh, one nsd x nsd tensor per Gauss point per
+    /// element (see prestrain.h). Empty unless the mesh is prestrained.
+    Array<double> F0;
 
     /// @brief Parent shape functions gradient
     /// double Nx(:,:,:)
@@ -1577,6 +1599,24 @@ class urisType
 ///
 /// The data members here are the global variables exposed by the COMMOD module.
 //
+/// @brief Input settings of pseudo-transient continuation (see
+/// PseudoTransientContinuation.h). Parsed from an equation's Pseudo_transient
+/// options and broadcast; the Integrator owns the object that runs the scheme.
+class PseudoTransientSettings {
+  public:
+    /// @brief Whether the run is a pseudo-transient continuation
+    bool enabled = false;
+
+    /// @brief Whether the pseudo time step is adapted between steps
+    bool adaptive_dt = false;
+
+    /// @brief Largest pseudo time step allowed; 100 times the initial one when unset
+    double max_dt = 0.0;
+
+    /// @brief The equation whose residual is monitored, the one that enabled it
+    int equation = -1;
+};
+
 class ComMod {
 
   public:
@@ -1594,14 +1634,15 @@ class ComMod {
     /// @brief Whether to averaged results
     bool saveAve = false;
 
+    /// @brief Whether to save the domain ID to every VTK file rather than to
+    /// the first one only
+    bool alwaysSaveDomainID = false;
+
     /// @brief Whether to save to VTK files
     bool saveVTK = false;
 
     /// @brief Whether any file being saved
     bool savedOnce = false;
-
-    /// @brief Whether to use separator in output
-    bool sepOutput = false;
 
     /// @brief Whether start from beginning or from simulations
     bool stFileFlag = false;
@@ -1629,6 +1670,14 @@ class ComMod {
 
     /// @brief Whether PRESTRESS is being solved
     bool pstEq = false;
+
+    /// @brief Whether a prestrain, an imprinted deformation gradient, is being
+    /// solved for (see prestrain.h)
+    bool prestrainEq = false;
+
+    /// @brief Pseudo-transient continuation settings
+    PseudoTransientSettings pseudoTransient;
+
 
     /// @brief Whether velocity-pressure based structural dynamics solver is used
     bool sstEq = false;

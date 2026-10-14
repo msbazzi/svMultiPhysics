@@ -18,7 +18,7 @@
 #include <iostream>
 #include <math.h>
 
-#include "ionic_model.h"
+#include "IonicModel.h"
 
 extern "C" {
 
@@ -320,6 +320,7 @@ void distribute(Simulation* simulation)
 
     cm.bcast(cm_mod, &com_mod.saveATS);
     cm.bcast(cm_mod, &com_mod.saveAve);
+    cm.bcast(cm_mod, &com_mod.alwaysSaveDomainID);
     cm.bcast(cm_mod, &com_mod.saveVTK);
     cm.bcast(cm_mod, &com_mod.bin2VTK);
 
@@ -338,6 +339,11 @@ void distribute(Simulation* simulation)
 
     cm.bcast(cm_mod, &com_mod.shlEq);
     cm.bcast(cm_mod, &com_mod.pstEq);
+    cm.bcast(cm_mod, &com_mod.prestrainEq);
+    cm.bcast(cm_mod, &com_mod.pseudoTransient.enabled);
+    cm.bcast(cm_mod, &com_mod.pseudoTransient.adaptive_dt);
+    cm.bcast(cm_mod, &com_mod.pseudoTransient.max_dt);
+    cm.bcast(cm_mod, &com_mod.pseudoTransient.equation);
     cm.bcast(cm_mod, &com_mod.sstEq);
 
     cm.bcast(cm_mod, &simulation->cep_mod.cepEq);
@@ -551,8 +557,10 @@ void distribute(Simulation* simulation)
   cm.bcast(cm_mod, &cplBC.useGenBC);
   cm.bcast(cm_mod, &cplBC.useSvZeroD);
   cm.bcast(cm_mod, &cplBC.useSvOneD);
+  cm.bcast(cm_mod, &cplBC.finite_difference_absolute_perturbation);
+  cm.bcast(cm_mod, &cplBC.finite_difference_relative_perturbation);
 
-  if (cplBC.useGenBC) {   
+  if (cplBC.useGenBC) {
     if (cm.slv(cm_mod)) {   
       cplBC.nX = 0;
       cplBC.xo.resize(cplBC.nX);
@@ -2285,8 +2293,10 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
 
   Array<int> tempIEN;
   Array<double> tmpFn;
+  Array<double> tmpF0;
   flag = false;
   bool fnFlag = false;
+  bool f0Flag = false;
 
   #ifdef dbg_part_msh
   dmsg << "sCount: " << sCount;
@@ -2383,6 +2393,17 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
       lM.fN.clear();
     }
 
+    // Distribute the prestrain deformation gradient F0
+    if (lM.F0.size() != 0) {
+      f0Flag = true;
+      tmpF0.resize(lM.F0.nrows(), lM.gnEl);
+      for (int e = 0; e < lM.gnEl; e++) {
+        int Ec = lM.otnIEN[e];
+        tmpF0.set_col(Ec, lM.F0.col(e));
+      }
+      lM.F0.clear();
+    }
+
   } else { 
     lM.otnIEN.clear();
   }
@@ -2391,6 +2412,7 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
 
   cm.bcast(cm_mod, &flag);
   cm.bcast(cm_mod, &fnFlag);
+  cm.bcast(cm_mod, &f0Flag);
   cm.bcast(cm_mod, lM.eDist);
   if (com_mod.risFlag) {
     cm.bcast(cm_mod, lM.partRIS);
@@ -2444,6 +2466,21 @@ void part_msh(Simulation* simulation, int iM, mshType& lM, Vector<int>& gmtl, in
     MPI_Scatterv(tmpFn.data(), sCount.data(), disp.data(), cm_mod::mpreal, lM.fN.data(), nEl*nFn*nsd, 
         cm_mod::mpreal, cm_mod.master, cm.com());
     tmpFn.clear();
+  }
+
+  // Communicating F0, if necessary.
+  //
+  if (f0Flag) {
+    int rows = tmpF0.nrows();
+    cm.bcast(cm_mod, &rows);
+    lM.F0.resize(rows, nEl);
+    for (int i = 0; i < num_proc; i++) {
+      disp[i] = lM.eDist[i] * rows;
+      sCount[i] = lM.eDist[i+1] * rows - disp[i];
+    }
+    MPI_Scatterv(tmpF0.data(), sCount.data(), disp.data(), cm_mod::mpreal, lM.F0.data(), nEl*rows,
+        cm_mod::mpreal, cm_mod.master, cm.com());
+    tmpF0.clear();
   }
 
   // Now scattering the sorted lM%IEN to all processors.
