@@ -340,6 +340,7 @@ void distribute(Simulation* simulation)
     cm.bcast(cm_mod, &com_mod.shlEq);
     cm.bcast(cm_mod, &com_mod.pstEq);
     cm.bcast(cm_mod, &com_mod.prestrainEq);
+    cm.bcast(cm_mod, &com_mod.prestrainFiberSheetPair);
     cm.bcast(cm_mod, &com_mod.pseudoTransient.enabled);
     cm.bcast(cm_mod, &com_mod.pseudoTransient.adaptive_dt);
     cm.bcast(cm_mod, &com_mod.pseudoTransient.max_dt);

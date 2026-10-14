@@ -33,6 +33,7 @@ ComMod::ComMod()
   shlEq              = false;
   pstEq              = false;
   prestrainEq        = false;
+  prestrainFiberSheetPair = true;
   sstEq              = false;
   ibFlag             = false;
   risFlag            = false;

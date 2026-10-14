@@ -207,7 +207,7 @@ void construct_fsi(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const So
         // A prestrained solid element is integrated on its stress-free configuration (see prestrain.h).
         if (prestrained) {
           Jac /= prestrain::pull_back(lM, e, g, Nwx);
-          prestrain::pull_back_fibers(lM, e, g, fN);
+          prestrain::pull_back_fibers(lM, e, g, fN, com_mod.prestrainFiberSheetPair);
         }
       }
 

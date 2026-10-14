@@ -318,7 +318,7 @@ void construct_dsolid(ComMod& com_mod, CepMod& cep_mod, const mshType& lM, const
         // A prestrained element is integrated on its stress-free configuration (see prestrain.h).
         if (prestrained) {
           Jac /= prestrain::pull_back(lM, e, g, Nx);
-          prestrain::pull_back_fibers(lM, e, g, fN);
+          prestrain::pull_back_fibers(lM, e, g, fN, com_mod.prestrainFiberSheetPair);
         }
       }
       double w = lM.w(g) * Jac;
@@ -465,7 +465,8 @@ void struct_2d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
       mat_models::compute_pk2cc<2>(com_mod, cep_mod, dmn, F, nFn, fibers, ya_g_f, ya_g_s, ya_g_n, S_f, Dm_f, Ja_f);
       return S_f;
     };
-    prestrain::correct_step_tangent_fibers<2>(F0, F, S, Nxm, eigen_view<2>(fN), stress, w * afu, dof, lK);
+    prestrain::correct_step_tangent_fibers<2>(F0, F, S, Nxm, eigen_view<2>(fN), stress, w * afu, dof, lK,
+                                                 com_mod.prestrainFiberSheetPair);
   }
 
   // Viscous 2nd Piola-Kirchhoff stress and tangent contributions.
@@ -663,7 +664,8 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
       mat_models::compute_pk2cc<3>(com_mod, cep_mod, dmn, F, nFn, fibers, ya_g_f, ya_g_s, ya_g_n, S_f, Dm_f, Ja_f);
       return S_f;
     };
-    prestrain::correct_step_tangent_fibers<3>(F0, F, S, Nxm, eigen_view<3>(fN), stress, w * afu, dof, lK);
+    prestrain::correct_step_tangent_fibers<3>(F0, F, S, Nxm, eigen_view<3>(fN), stress, w * afu, dof, lK,
+                                                 com_mod.prestrainFiberSheetPair);
   }
 
   // Viscous 2nd Piola-Kirchhoff stress and tangent contributions.

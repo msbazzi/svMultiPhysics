@@ -92,12 +92,15 @@ double pull_back(const mshType& lM, int e, int g, Array<double>& Nx);
 /// @brief Element e's fibers, read from the mesh and pulled back to the
 /// stress-free configuration that F0 maps to the mesh, written to fN. Each
 /// direction is a material line, pulled back with F0^{-1} and rescaled to its
-/// given length; a second direction given perpendicular to the first stays
-/// perpendicular to it, within the pulled-back plane of the two. Reading from
-/// the mesh each time, repeated calls do not compound. Does nothing when the
-/// mesh has no fibers.
+/// given length. With sheet_follows_fiber, the first two directions are a
+/// fiber/sheet pair: a second direction given perpendicular to the first stays
+/// perpendicular to it, within the pulled-back plane of the two. Without it,
+/// as for helical fiber families, each direction is pulled back on its own.
+/// Reading from the mesh each time, repeated calls do not compound. Does
+/// nothing when the mesh has no fibers.
 template <int nsd>
-void pull_back_fibers(const mat_fun::Matrix<nsd>& F0, const mshType& lM, const int e, Array<double>& fN)
+void pull_back_fibers(const mat_fun::Matrix<nsd>& F0, const mshType& lM, const int e, Array<double>& fN,
+                      const bool sheet_follows_fiber)
 {
   if (lM.fN.size() == 0) {
     return;
@@ -113,7 +116,7 @@ void pull_back_fibers(const mat_fun::Matrix<nsd>& F0, const mshType& lM, const i
     f0.col(k) = (length > 0.0) ? Direction(d * (f.col(k).norm() / length)) : Direction::Zero();
   }
 
-  if (f.cols() >= 2) {
+  if (sheet_follows_fiber && f.cols() >= 2) {
     const double lf = f.col(0).norm();
     const double ls = f.col(1).norm();
     constexpr double perpendicular_tol = 1.0e-6;
@@ -127,7 +130,7 @@ void pull_back_fibers(const mat_fun::Matrix<nsd>& F0, const mshType& lM, const i
 
 /// @brief The same at Gauss point g of element e, for callers whose number of
 /// spatial dimensions is not known at compile time.
-void pull_back_fibers(const mshType& lM, int e, int g, Array<double>& fN);
+void pull_back_fibers(const mshType& lM, int e, int g, Array<double>& fN, bool sheet_follows_fiber);
 
 /// @brief Make a solid kernel's tangent that of a prestrain step.
 ///
@@ -214,10 +217,13 @@ std::array<Eigen::Matrix<double, nsd, 1>, nsd - 1> perpendicular_directions(cons
 /// @param stress the material law's S at F for other fibers, nsd x nFn.
 /// @param w_afu the weight times the stiffness scaling of lK.
 /// @param lK the element tangent, lK(i*dof + j, a, b).
+/// @param fiber_sheet_pair whether the fibers were pulled back as a
+/// fiber/sheet pair (see pull_back_fibers).
 template <int nsd, class Gradients, class Fibers, class Stress>
 void correct_step_tangent_fibers(const mat_fun::Matrix<nsd>& F0, const mat_fun::Matrix<nsd>& F,
                                  const mat_fun::Matrix<nsd>& S, const Gradients& Nx0, const Fibers& fibers,
-                                 const Stress& stress, const double w_afu, const int dof, Array3<double>& lK)
+                                 const Stress& stress, const double w_afu, const int dof, Array3<double>& lK,
+                                 const bool fiber_sheet_pair)
 {
   using Direction = Eigen::Matrix<double, nsd, 1>;
   const int nFn = fibers.cols();
@@ -228,13 +234,13 @@ void correct_step_tangent_fibers(const mat_fun::Matrix<nsd>& F0, const mat_fun::
   // Step of the finite differences, relative to the fiber's length
   constexpr double h = 1.0e-7;
 
-  // pull_back_fibers keeps a sheet perpendicular to the fiber when they are
-  // perpendicular on the mesh; the pulled-back pair is then perpendicular to
-  // round-off, and otherwise is not.
+  // For a fiber/sheet pair, pull_back_fibers keeps a sheet perpendicular to
+  // the fiber when they are perpendicular on the mesh; the pulled-back pair is
+  // then perpendicular to round-off, and otherwise is not.
   constexpr double perpendicular_tol = 1.0e-10;
   const double lf = fibers.col(0).norm();
   const double ls = (nFn >= 2) ? fibers.col(1).norm() : 0.0;
-  const bool sheet_follows_fiber = lf > 0.0 && ls > 0.0 &&
+  const bool sheet_follows_fiber = fiber_sheet_pair && lf > 0.0 && ls > 0.0 &&
       std::abs(fibers.col(0).dot(fibers.col(1))) <= perpendicular_tol * lf * ls;
   const Direction fiber = (lf > 0.0) ? Direction(fibers.col(0) / lf) : Direction::Zero();
 

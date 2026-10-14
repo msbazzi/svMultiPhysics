@@ -1741,6 +1741,9 @@ void read_eq(Simulation* simulation, EquationParameters* eq_params, eqType& lEq)
   if (prestrain) {
     simulation->com_mod.prestrainEq = true;
   }
+  if (eq_params->prestrain_fiber_sheet_pair.defined()) {
+    simulation->com_mod.prestrainFiberSheetPair = eq_params->prestrain_fiber_sheet_pair.value();
+  }
 
   // Pseudo-transient continuation, so far only for prestrain, whose steps start from rest.
   auto& pseudo_transient = simulation->com_mod.pseudoTransient;

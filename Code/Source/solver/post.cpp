@@ -1895,7 +1895,7 @@ void tensor_post_impl(Simulation* simulation, const mshType& lM, const int m, Ar
       const Matrix<nsd> F = (Im + disp * Nxm.transpose()) * F0;
       const double detF = F.determinant();
       if (prestrained) {
-        prestrain::pull_back_fibers<nsd>(F0, lM, e, fN);
+        prestrain::pull_back_fibers<nsd>(F0, lM, e, fN, com_mod.prestrainFiberSheetPair);
       }
 
       Vector<double> ed(com_mod.nsymd);

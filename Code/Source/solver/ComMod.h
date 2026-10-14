@@ -1675,6 +1675,13 @@ class ComMod {
     /// solved for (see prestrain.h)
     bool prestrainEq = false;
 
+    /// @brief Whether the first two fiber directions are a fiber/sheet pair:
+    /// a sheet given perpendicular to the fiber on the mesh is kept
+    /// perpendicular to it when pulled back by the prestrain. When false,
+    /// every direction is pulled back on its own as a material line, as for
+    /// helical fiber families (see prestrain.h).
+    bool prestrainFiberSheetPair = true;
+
     /// @brief Pseudo-transient continuation settings
     PseudoTransientSettings pseudoTransient;
 
