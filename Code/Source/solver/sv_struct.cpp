@@ -488,7 +488,7 @@ void struct_2d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
     Matrix<2> S_ref;
     Matrix<3> Dm_ref;
     double Ja_ref;
-    mat_models::compute_pk2cc<2>(com_mod, cep_mod, dmn, Matrix<2>::Identity(), nFn, eigen_view<2>(fN),
+    mat_models::compute_pk2cc<2>(com_mod, cep_mod, dmn, F0, nFn, eigen_view<2>(fN),
                                  0.0, 0.0, 0.0, S_ref, Dm_ref, Ja_ref);
     pSl(0) -= S_ref(0,0);
     pSl(1) -= S_ref(1,1);
@@ -686,9 +686,13 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
   #endif
 
   // Prestress: accumulate only the stress induced by this step's
-  // deformation. Materials that are not stress-free at F = I (e.g. CANN rows
-  // with nonzero slope at the reference) would otherwise add S(I) to pS0 on
-  // every step because the displacement is reset each step.
+  // deformation. The reference is the state the step starts from, F = F0
+  // (F = I without a prestrain): materials that are not stress-free there
+  // (e.g. CANN rows with nonzero slope at the reference, or a prescribed
+  // prestretch read from Prestrain_file_path) would otherwise add S(F0) to pS0
+  // on every step because the displacement is reset each step. With a
+  // prescribed F0, the converged S0 is the residual prestress that holds the
+  // mesh in equilibrium with the material at its prestretched state.
   pSl(0) = S(0,0);
   pSl(1) = S(1,1);
   pSl(2) = S(2,2);
@@ -700,7 +704,7 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
     Matrix<3> S_ref;
     Matrix<6> Dm_ref;
     double Ja_ref;
-    mat_models::compute_pk2cc<3>(com_mod, cep_mod, dmn, Matrix<3>::Identity(), nFn, eigen_view<3>(fN),
+    mat_models::compute_pk2cc<3>(com_mod, cep_mod, dmn, F0, nFn, eigen_view<3>(fN),
                                  0.0, 0.0, 0.0, S_ref, Dm_ref, Ja_ref);
     pSl(0) -= S_ref(0,0);
     pSl(1) -= S_ref(1,1);
@@ -709,9 +713,9 @@ void struct_3d(ComMod &com_mod, CepMod &cep_mod, const int eNoN, const int nFn,
     pSl(4) -= S_ref(1,2);
     pSl(5) -= S_ref(2,0);
 
-    // Phase the reference stress S(I) into the residual over a ramp time set by
+    // Phase the reference stress S(F0) into the residual over a ramp time set by
     // the environment variable SV_PRESTRESS_REF_RAMP_TIME (seconds; unset or 0 =
-    // off). Without it, a material that is not stress-free at F = I must be
+    // off). Without it, a material that is not stress-free at F = F0 must be
     // equilibrated in one Newton solve at step 1. pSl is unchanged, so the
     // converged prestress is the same.
     static const double ref_ramp_time = [] {

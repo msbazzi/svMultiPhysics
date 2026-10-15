@@ -1237,11 +1237,16 @@ void write_vtus(Simulation* simulation, const SolutionStates& solutions, const b
               }
             }
 
+            // In a prestress run "Stress" is the prestress S0 alone, which is what
+            // Prestress_file_path reads back. Adding the material stress S(F) on
+            // top would make a forward run count it twice: S(F) is not small for
+            // materials that are not stress-free at the reference (CANN) or with
+            // a prescribed prestrain F0 (Prestrain_file_path).
             if (msh.lShl) {
               post::shl_post(simulation, msh, l, tmpV, tmpVe, solutions, iEq, oGrp);
               //CALL SHLPOST(msh(iM), l, tmpV, tmpVe, lD, iEq,oGrp)
-            } else { 
-              if (!com_mod.cmmInit) {
+            } else {
+              if (!com_mod.cmmInit && !(com_mod.pstEq && oGrp == OutputNameType::outGrp_stress)) {
                 post::tensor_post(simulation, msh, l, tmpV, tmpVe, solutions, iEq, oGrp);
               }
             }
